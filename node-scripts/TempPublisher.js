@@ -3,31 +3,31 @@ class TempPublisher {
         this.config = require('config');
         this.util = require('util');
         this.spawn = require('child_process').spawn;
-        this.zmq = require('zeromq')
-            , this.sock = zmq.socket('pub');
+        this.zmq = require('zeromq');
+        this.sock = this.zmq.socket('pub');
         //retrieve usefull parameters
-        this.address = config.get('Sensor.address.host');
-        this.port = config.get('Sensor.address.port');
-        this.topic = config.get('Sensor.topic.temperature');
+        this.host = this.config.get('Sensor.address.host');
+        this.port = this.config.get('Sensor.address.port');
+        this.topic = this.config.get('Sensor.topic.temperature');
         this.path = '../python-scripts/temp_DS18b20.py';
     }
     //bind to the socket
     sense() {
-        sock.bindSync('tcp://' + address + ':' + port);
-        console.log('publisher bound to port' + port);
+        this.sock.bindSync('tcp://' + this.host + ':' + this.port);
+        console.log('publisher bound to port' + this.port);
         //starting python script
-        this.process = spawn('python', [path]);
+        process = this.spawn('python', [this.path]);
         //awaiting for data
         process.stdout.on('data', function (chunk) {
-            this.textchunk = chunk.toString('utf8');
+            textchunk = chunk.toString('utf8');
             //sanitizing from newlines
             textchunk.replace('\n', '');
             //format
-            this.data = JSON.stringify({ topic: textchunk });
+            data = JSON.stringify({ topic: textchunk });
             //publish by topic
-            sock.send([topic, data]);
+            this.sock.send([this.topic, data]);
             //print for testing
-            util.log(data);
+            this.util.log(data);
         });
     }
 }
