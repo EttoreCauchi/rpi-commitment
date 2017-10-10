@@ -1,0 +1,15 @@
+{
+    "Sensor":{
+        "address":{
+            "host": "127.0.0.1",
+            "port": 92423
+        },
+        "topic":{
+            "temperature":"temp",
+            "humidity":"hum",
+            "simple-inclination":"tilt",
+            "brightness":"LDR" 
+        }
+    }
+
+}
