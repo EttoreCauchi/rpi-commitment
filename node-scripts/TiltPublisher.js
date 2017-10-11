@@ -16,7 +16,7 @@ class TiltPublisher {
     sense() {
         var sock = this.sock;
         var topic = this.topic;
-        sock.connect('tcp://' + this.host + ':' + this.port);
+        sock.bindSync('tcp://' + this.host + ':' + this.port);
         console.log('publisher bound to port ' + this.port);
         //starting python script
         var process = this.spawn('python', [this.path]);

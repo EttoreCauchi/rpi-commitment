@@ -8,7 +8,7 @@ var port = config.sensor.address.port;
 var topic = config.sensor.topic.temperature;
 
 
-sock.bindSync('tcp://' + address + ':' + port);
+sock.connect('tcp://' + address + ':' + port);
 sock.subscribe(topic);
 console.log(topic);
 console.log('subscriber connected to port:' + port);
