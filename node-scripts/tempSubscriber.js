@@ -1,14 +1,16 @@
+var config = require('../config/settings');
 
 var zmq = require('zeromq')
     , sock = zmq.socket('sub');
 
-var address = config.get('Sensor.address.host');
-var port = config.get('Sensor.address.port');
-var topic = config.get('Sensor.topic.temp');
+var address = config.sensor.address.host;
+var port = config.sensor.address.port;
+var topic = config.sensor.topic.temperature;
 
 
-sock.connect('tcp://' + address + ':' + port);
+sock.bindSync('tcp://' + address + ':' + port);
 sock.subscribe(topic);
+console.log(topic);
 console.log('subscriber connected to port:' + port);
 
 sock.on('message', function (topic, message) {

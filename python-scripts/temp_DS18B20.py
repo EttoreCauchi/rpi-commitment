@@ -28,7 +28,14 @@ def read_temp():
         temp_c = float(temp_string) / 1000.0
         return temp_c
 	
-while True:
-    print("%f" % read_temp())
-    sys.stdout.flush()
-    time.sleep(1)
+def main():
+	while True:
+		temp = read_temp()
+		print ("%s" %temp)
+		sys.stdout.flush()
+		
+		
+
+    
+if __name__ == '__main__':
+        main()
