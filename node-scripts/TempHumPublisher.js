@@ -1,33 +1,30 @@
-//The module supports only physical GPIO numbering
 //3.3to5.5v,PIN(1L,9L,1R,2R)
 //Ground PIN (3R...)
 
 class TempHumPublisher {
-    constructor() {
+    constructor(sock) {
         this.config = require('../config/settings');
-        this.zmq = require('zeromq')
-            , this.sock = zmq.socket('pub');
+        //this.zmq = require('zeromq');
+        this.sock = sock;
         this.rpiDhtSensor = require('rpi-dht-sensor');
-
-        this.address = this.config.sensor.address.host;
-        this.port = this.config.sensor.address.port;
         this.tempTopic = this.config.sensor.topic.temperature;
         this.humTopic = this.config.sensor.topic.humidity;
 
-        //reading from GPIO2 (2L)
-        this.dht = new rpiDhtSensor.DHT11(2);
+        //reading from GPIO4 (4L)
+        this.dht = new this.rpiDhtSensor.DHT11(4);
     }
 
 
     sense() {
+		console.log('temperature and humidity sensors online');
+		var sock = this.sock;
         var tempTopic = this.tempTopic;
         var humTopic = this.humTopic;
-        this.sock.bindSync('tcp://' + this.host + ':' + this.port);
-        console.log('publisher bound to port ' + this.port);
+        var dht = this.dht;
         function read() {
-            this.readout = this.dht.read();
-            var temp = this.readout.temperature.toFixed(2);
-            var hum = this.readout.humidity.toFixed(2);
+            var readout = dht.read();
+            var temp = readout.temperature.toFixed(2);
+            var hum = readout.humidity.toFixed(2);
             var tempData = "{" + tempTopic + ":" + temp + " }";
             var humData = "{" + humTopic + ":" + hum + "}";
             //publish by topic
@@ -37,6 +34,7 @@ class TempHumPublisher {
             //time expressed by ms!!
             setTimeout(read, 5000);
         };
+        read();
     }
 }
 

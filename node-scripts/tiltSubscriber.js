@@ -8,7 +8,7 @@ var port = config.sensor.address.port;
 var topic = config.sensor.topic.simpleinclination;
 
 
-sock.bindSync('tcp://' + address + ':' + port);
+sock.connect('tcp://' + address + ':' + port);
 sock.subscribe(topic);
 console.log('subscriber connected to port:' + port);
 
