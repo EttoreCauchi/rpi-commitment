@@ -9,6 +9,5 @@ process.on('message', function(file) {
 		+ '\nCommitment Strenght : ' + file.commitment.strenght
 		+ '\nCommitment Type : ' + file.commitment.type);
 	commit.initializeCommit(file);
-	//process.exit(1);
 
 });
