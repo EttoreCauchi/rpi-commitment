@@ -25,7 +25,7 @@ class TempHumPublisher {
             var readout = dht.read();
             var temp = readout.temperature.toFixed(2);
             var hum = readout.humidity.toFixed(2);
-            var tempData = "{" + tempTopic + ":" + temp + " }";
+            var tempData = "{" + tempTopic + ":" + temp + "}";
             var humData = "{" + humTopic + ":" + hum + "}";
             //publish by topic
             sock.send([tempTopic, tempData]);
