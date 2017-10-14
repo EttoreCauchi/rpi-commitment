@@ -1,0 +1,67 @@
+{
+"commitment":
+	{
+	"strenght":"hard",
+	"type":"persistent",
+	"debtor":
+		{
+		"choreographyTask":"task1",
+		"debtorName":"debitore"
+		},
+	"creditor":
+		{
+		"choreographyTask":"task2",
+		"creditorName":"creditore"		
+		},
+	"smartObject":
+		{
+		"id":"0002",
+		"desc":"fkvnfkvfn"
+		},
+	"antecedentCondition":
+		{
+		"minA": 0,
+		"maxA": 1,
+		"operation": "&&",
+		"variables": [
+		    {
+		        "operation": "==",
+		        "variables": [
+		            "temp",
+		            0
+		        ]
+		    },
+		    {
+		        "operation": "<",
+		        "variables": [
+		            "hum",
+		            2
+		        ]
+		    }
+		]
+    		},
+	"consequentCondition":
+		{
+		"minC": 0,
+		"maxC": 0.2,
+		"operation": "||",
+		"variables": [
+		    {
+		        "operation": "==",
+		        "variables": [
+		            "temp",
+		            0
+		        ]
+		    },
+		    {
+		        "operation": "<",
+		        "variables": [
+		            "temp",
+		            10
+		        ]
+		    }
+		]
+		}
+	}
+		
+}
