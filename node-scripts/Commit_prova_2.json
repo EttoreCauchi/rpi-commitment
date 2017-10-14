@@ -49,8 +49,8 @@
 		    {
 		        "operation": "==",
 		        "variables": [
-		            "temp",
-		            0
+		            "tilt",
+		            false
 		        ]
 		    },
 		    {

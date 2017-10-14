@@ -6,7 +6,7 @@ var sleep = require('sleep');
 //TODO
 var temp = 0;
 var hum = 0;
-var tilt;
+var tilt = true;
 var ldr;
 var commitWin = true; //it becomes false if the button is pressed
 var hours = 0.5;
