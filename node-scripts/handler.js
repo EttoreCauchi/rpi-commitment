@@ -107,7 +107,7 @@ class Handler {
 
 			
 			child.send(file);
-			console.log('ID process' + child.pid);
+			console.log('ID process ' + child.pid);
 			for(var i = 0; i<temp_hum_line.length; i++)
 				console.log(temp_hum_line[i] + ' ');
 			
