@@ -1,9 +1,0 @@
-Components
-- DS18B20
-- 5Kohm resistor
-
-DS18B20 is a commonly used temperature temperature sensor providing 9 bit to 12 bit digital Celsius temperature measurements.
-
-Voltage: 3V~5V
-Range: -55°C~+125°C
-Precision: 9-bit~12-bit
