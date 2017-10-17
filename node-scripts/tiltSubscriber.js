@@ -5,7 +5,7 @@ var zmq = require('zeromq')
 
 var address = config.sensor.address.host;
 var port = config.sensor.address.port;
-var topic = config.sensor.topic.simpleinclination;
+var topic = config.sensor.topic.temperature;
 
 
 sock.connect('tcp://' + address + ':' + port);

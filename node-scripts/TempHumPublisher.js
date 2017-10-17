@@ -16,23 +16,28 @@ class TempHumPublisher {
 
 
     sense() {
-		console.log('temperature and humidity sensors online');
+		var count = 0;
+		console.log('Temperature and Humidity sensors online');
 		var sock = this.sock;
         var tempTopic = this.tempTopic;
         var humTopic = this.humTopic;
         var dht = this.dht;
         function read() {
+			count++;
             var readout = dht.read();
-            var temp = readout.temperature.toFixed(2);
-            var hum = readout.humidity.toFixed(2);
-            var tempData = "{" + tempTopic + ":" + temp + "}";
-            var humData = "{" + humTopic + ":" + hum + "}";
+            var temp = readout.temperature;
+            var hum = readout.humidity;
+            //var tempData = "{" + tempTopic + ":" + temp + "}";
+            //var humData = "{" + humTopic + ":" + hum + "}";
             //publish by topic
-            sock.send([tempTopic, tempData]);
-            sock.send([humTopic, humData]);
-            console.log('Temperature: ' + temp + 'C, ' + 'humidity: ' + hum + '%');
-            //time expressed by ms!!
-            setTimeout(read, 5000);
+            if(count > 3)
+            {
+				sock.send([tempTopic, temp]);
+				sock.send([humTopic, hum]);
+				//console.log('Temperature: ' + temp + 'C, ' + 'humidity: ' + hum + '%');
+				//time expressed by ms!!
+			}
+            setTimeout(read, 1500);
         };
         read();
     }

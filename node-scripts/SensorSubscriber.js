@@ -6,41 +6,46 @@ var zmq = require('zeromq')
 
 var address = config.sensor.address.host;
 var port = config.sensor.address.port;
+var measures = [];
+        var last;
+        var sleep = require('sleep');
+
+
 
 
 class SensorSubscriber {
-    constructor(topics) {
+    start(topics) {
         sock.connect('tcp://' + address + ':' + port);
         this.topics = topics;
-        this.measures = [];
         // for each topic(that is a sensor measure) we create an array of Subject(special Observable which can multicast events)
-        this.topics.array.forEach(function (element, index) {
+        this.topics.forEach(function (element, index) {
             sock.subscribe(element);
-            this.measures[index] = new Rx.Subject();
+            measures[index] = new Rx.Subject();
             console.log('subscribed to ' + element + " at index " + index);
         });
         // receiving a message triggers
         sock.on('message', function (topic, message) {
-            this.measures[topics.indexOf(topic.toString('utf8'))].next(message.toString('utf8'));
-        });
+            measures[topics.indexOf(topic.toString('utf8'))].next(message.toString('utf8'));
+            
+        });        
+       
     }
 
     //emit complete message for specified sensor
     //to verify if is necessary
     complete(measure) {
-        this.measures[topics.indexOf(measure)].complete();
+        measures[topics.indexOf(measure)].complete();
     }
 
     //measure from config list of available sensor
     extract(measure) {
-        var obs = this.measures[topics.indexOf(measure)]
-            .pluck(measure);                                        //maybe it can be used map(x=>x.measure) for extractin properties
+        var obs = measures[this.topics.indexOf(measure)];
         return obs;
     }
 
     //not sure if works, should complete first?
     finalMax(measure) {
-        var subscription = extract(measure)
+        var subscription = this.extract(measure)
             .max()
             .subscribe(x => console.log(x));
         return subscription;
@@ -48,7 +53,7 @@ class SensorSubscriber {
 
     //not sure if works
     finalMin(measure) {
-        var subscription = extract(measure)
+        var subscription = this.extract(measure)
             .min()
             .subscribe(x => console.log(x));
         return subscription;
@@ -61,21 +66,21 @@ class SensorSubscriber {
     //it can be done with windowCount too...
     avgByElement(measure, number) {
         var avg;
-        var subscription = extract(measure)
+        var subscription = this.extract(measure)
             .bufferCount(number)
             .subscribe(function (x) {
                 avg = x.reduce(function (tot, elem) {
                     return tot + elem;
-                }) / num;
+                }) / number;
                 console.log(avg);
             });
-        return subscription;
+        return avg;
     }
 
     //overlapped buffer, overlapping = bufdim
     avgByElementOverlapped(measure, number, bufdim) {
         var avg;
-        var subscription = extract(measure)
+        var subscription = this.extract(measure)
             .bufferCount(number, bufdim)
             .subscribe(function (x) {
                 avg = x.reduce(function (tot, elem) {
@@ -88,7 +93,7 @@ class SensorSubscriber {
 
     avgByTime(measure, msec) {
         var avg;
-        var subscription = extract(measure)
+        var subscription = this.extract(measure)
             .bufferTime(msec)
             .subscribe(function (x) {
                 //count element in a buffer
@@ -101,11 +106,12 @@ class SensorSubscriber {
     }
 
     takeLast(measure) {
-        var last;
-        var subscription = extract(measure).subscribe({
-            next: (v) => console.log(v),last=v
-        });
-        return subscription;
+        last = this.extract(measure).take(1).subscribe(last);
+        //.windowCount(1)
+        //.subscribe(x=>x.subscribe(function(y){console.log(y);last=y;console.log(last);}));
+        //sleep.sleep(2);
+        console.log(last);
+        return last;
     }
 
 }

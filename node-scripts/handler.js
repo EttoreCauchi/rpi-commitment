@@ -1,7 +1,7 @@
 var fs = require('fs');
 const fork = require('child_process');
 var chokidar = require('chokidar');
-var watcher = chokidar.watch('./Commitments', {ignoreInitial: true});
+var watcher = chokidar.watch('./Commitments', {ignoreInitial: false});
 
 var config = require('../config/settings');
 var zmq = require('zeromq');
@@ -31,7 +31,7 @@ class Handler {
 		{
 
 			var file = JSON.parse(fs.readFileSync('./' + path, 'utf8'));
-			console.log('\nNew File : ' + path);
+			console.log('\nNew File : ' + path + '\n');
 			var child = fork.fork('./chandler.js');
 			
 			//Check if temp, hum and tilt are in the commitment and starts the sensors
@@ -50,7 +50,7 @@ class Handler {
 				{
 					if(temp_hum_line.length == 0)
 					{
-						//tempHumSensor.sense();
+						tempHumSensor.sense();
 						temp_hum_line.push(child.pid);
 						console.log("Connected to TempHum Sensor\n");
 					}
@@ -64,7 +64,7 @@ class Handler {
 				{
 					if(tilt_line.length == 0)
 					{
-						//tiltSensor.sense();
+						tiltSensor.sense();
 						tilt_line.push(child.pid);
 						console.log("Connected to Tilt Sensor\n");
 					}
@@ -84,7 +84,7 @@ class Handler {
 				{
 					if(temp_hum_line.length == 0)
 					{
-						//tempHumSensor.sense();
+						tempHumSensor.sense();
 						temp_hum_line.push(child.pid);
 						console.log("Connected to TempHum Sensor\n");
 					}
@@ -96,7 +96,7 @@ class Handler {
 				{
 					if(tilt_line.length == 0)
 					{
-						//tiltSensor.sense();
+						tiltSensor.sense();
 						tilt_line.push(child.pid);
 						console.log("Connected to Tilt Sensor\n");
 					}
@@ -113,7 +113,7 @@ class Handler {
 			
 		})
 
-		require('chokidar').watch('./Commitments', {ignoreInitial: true}).on('add',
+		require('chokidar').watch('./Commitments', {ignoreInitial: false}).on('add',
  			function(event, path) {});
 	}
 }

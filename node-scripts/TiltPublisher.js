@@ -12,7 +12,7 @@ class TiltPublisher {
     }
     //bind to the socket
     sense() {
-		console.log('tilt sensors online');
+		console.log('Tilt sensors online');
         var sock = this.sock;
         var topic = this.topic;
         //starting python script
@@ -22,9 +22,8 @@ class TiltPublisher {
             var textchunk = chunk.toString('utf8');
             //sanitizing from newlines
             textchunk= textchunk.replace('\n', '');        
-            console.log(textchunk);
             //format
-            var data = "{"+topic+":"+textchunk+"}";
+            var data = textchunk;
             //publish by topic
             sock.send([topic, data]);
         });

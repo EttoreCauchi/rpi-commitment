@@ -25,10 +25,10 @@
 		"operation": "&&",
 		"variables": [
 		    {
-		        "operation": "==",
+		        "operation": ">",
 		        "variables": [
 		            "temp",
-		            0
+		            10
 		        ]
 		    },
 		    {

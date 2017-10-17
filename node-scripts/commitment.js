@@ -2,13 +2,20 @@ var JSONMath = require('json-logic');
 var fs = require('fs');
 var Stately = require('stately.js');
 var sleep = require('sleep');
-var request = require('request');
 const fork = require('child_process');
+var config = require('../config/settings');
+var zmq = require('zeromq');
+var sock = zmq.socket('sub');
 
+var address = config.sensor.address.host;
+var port = config.sensor.address.port;
+
+sock.connect('tcp://' + address + ':' + port);
+		
 //TODO
-var temp = 0;
-var hum = 0;
-var tilt = true;
+var temp;
+var hum;
+var tilt = 'False';
 var ldr;
 var commitWin = true; //it becomes false if the button is pressed
 var hours = 0.5;
@@ -18,10 +25,54 @@ class Commit
 
 	initializeCommit(file)
 	{
+		//Subscribtion only to the sensors in the commitment
+		if (file.commitment.antecedentCondition.operation == '&&' || file.commitment.antecedentCondition.operation == '||' ||
+			file.commitment.consequentCondition.operation == '&&' || file.commitment.consequentCondition.operation == '||')
+		{
+			if (file.commitment.antecedentCondition.variables[0].variables[0] == 'temp' ||
+				file.commitment.antecedentCondition.variables[0].variables[0] == 'hum' ||
+					file.commitment.antecedentCondition.variables[1].variables[0] == 'temp' ||
+					file.commitment.antecedentCondition.variables[1].variables[0] == 'hum' ||
+						file.commitment.consequentCondition.variables[0].variables[0] == 'temp' ||
+						file.commitment.consequentCondition.variables[0].variables[0] == 'hum' ||
+							file.commitment.consequentCondition.variables[1].variables[0] == 'temp' ||
+							file.commitment.consequentCondition.variables[1].variables[0] == 'hum')
+			{
+				sock.subscribe('temp');
+				sock.subscribe('hum');
+			}
+			if (file.commitment.antecedentCondition.variables[0].variables[0] == 'tilt' ||
+				file.commitment.antecedentCondition.variables[1].variables[0] == 'tilt' ||
+					file.commitment.consequentCondition.variables[0].variables[0] == 'tilt' ||
+						file.commitment.consequentCondition.variables[1].variables[0] == 'tilt')
+			{
+				sock.subscribe('tilt');
+			}
+		}
+		else if (file.commitment.antecedentCondition.operation == '==' || file.commitment.antecedentCondition.operation == '!=' ||
+				file.commitment.consequentCondition.operation == '==' || file.commitment.consequentCondition.operation == '!=' ||
+					file.commitment.antecedentCondition.operation == '<' || file.commitment.antecedentCondition.operation == '>' ||
+						file.commitment.consequentCondition.operation == '<' || file.commitment.consequentCondition.operation == '>')
+		{
+			if (file.commitment.antecedentCondition.variables[0] == 'temp' ||
+				file.commitment.antecedentCondition.variables[0] == 'hum' ||
+					file.commitment.consequentCondition.variables[0] == 'temp' ||
+					file.commitment.consequentCondition.variables[0] == 'hum')
+			{
+				sock.subscribe('temp');
+				sock.subscribe('hum');				
+			}
+			if (file.commitment.antecedentCondition.variables[0] == 'tilt' ||
+				file.commitment.consequentCondition.variables[0] == 'tilt')
+			{
+				sock.subscribe('tilt');
+			}
+		}
+		
+		//Initialize states machine
 		var monitoring = fsm_status();
 
 		var creationDate = new Date();
-		var tCreation = absolute_time(creationDate.getHours(), creationDate.getMinutes(), creationDate.getSeconds());
 
 		var ant_logic = new JSONMath;
 		var con_logic = new JSONMath;
@@ -32,21 +83,6 @@ class Commit
 		console.log('\nID ' + file.commitment.smartObject.id + 
 				': ' + monitoring.getMachineState());
 
-
-		//Save the status on the database
-		var headers = {
-			'Id': file.commitment.smartObject.id
-		}			
-
-		var options = {
-			url: 'http://localhost:3000/commitments',
-			method: 'POST',
-			headers: headers,
-			form: {'status': monitoring.getMachineState()}
-		}
-		var child = fork.fork('./request.js', options);
-		child.send(options);
-
 		if(file.commitment.antecedentCondition.variables != true)
 		{
 			thereIsAntecedent = true;
@@ -56,6 +92,8 @@ class Commit
 			var maxA = absolute_time(0, file.commitment.antecedentCondition.maxA, 0);
 			var minA = absolute_time(0, file.commitment.antecedentCondition.minA, 0);
 			monitoring.tick_c();
+			//DA COLLEGARE A REST (INIZIO COMMITMENT)
+			var tCreation = absolute_time(creationDate.getHours(), creationDate.getMinutes(), creationDate.getSeconds());
 		}
 		else
 		{
@@ -64,6 +102,8 @@ class Commit
 			monitoring.tick_d();
 			var detachDate = new Date();
 			var tDetaching = absolute_time(detachDate.getHours(), detachDate.getMinutes(), detachDate.getSeconds());
+			//DA COLLEGARE A REST (INIZIO COMMITMENT)
+			var tCreation = absolute_time(creationDate.getHours(), creationDate.getMinutes(), creationDate.getSeconds());
 		}
 		var con_res = con_logic.execute({
 		    "consequent": file.commitment.consequentCondition
@@ -71,30 +111,34 @@ class Commit
 		var maxC = absolute_time(0, file.commitment.consequentCondition.maxC, 0);
 		var minC = absolute_time(0, file.commitment.consequentCondition.minC, 0);
 
-		//ant_res.antecedent = commitmentEvaluation(file.commitment.antecedentCondition);
-		//con_res.consequent = commitmentEvaluation(file.commitment.consequentCondition);
-
 		console.log('\nID ' + file.commitment.smartObject.id + 
 				': ' + monitoring.getMachineState());
 
-		//Save the new status on the database
-		options = {
-			url: 'http://localhost:3000/commitments',
-			method: 'PUT',
-			headers: headers,
-			form: {'status': monitoring.getMachineState()}
-		}
-		child = fork.fork('./request.js', options);
-		child.send(options);
-
-
-		//booleano che ci indica quando stare e uscire dal while (in realtà il bottoncino fa la stessa cosa)
-		var processing = true;
-
-		while(processing)
+		sock.on('message', function (topic, message)
 		{
 			//AGGIORNARE I VALORI CHE PROVENGONO DAI SENSORI TODO
-
+			if(topic.toString('utf8') === config.sensor.topic.temperature)
+			{
+				temp = message.toString('utf8');
+				console.log('Temp : ' + temp);
+			}
+			else if (topic.toString('utf8') === config.sensor.topic.humidity)
+			{
+				hum = message.toString('utf8');
+				console.log('Hum : ' + hum);
+			}
+			else if (topic.toString('utf8') === config.sensor.topic.simpleinclination)
+			{
+				tilt = message.toString('utf8');
+				console.log('Tilt : ' + tilt);
+			}
+			else if (topic.toString('utf8') === config.sensor.topic.brightness)
+			{
+				ldr = message.toString('utf8');
+				console.log('Ldr : ' + ldr);
+			}
+			
+			//Conditions evaluation
 			if(monitoring.getMachineState() == 'CONDITIONAL')
 			{
 				if(after_A_Win(tCreation, maxA))
@@ -102,36 +146,14 @@ class Commit
 					monitoring.tick_e();
 					console.log('ID ' + file.commitment.smartObject.id + 
 						': ' + monitoring.getMachineState());
-
-					//Save the new status on the database
-					options = {
-						url: 'http://localhost:3000/commitments',
-						method: 'PUT',
-						headers: headers,
-						form: {'status': monitoring.getMachineState()}
-					}
-					child = fork.fork('./request.js', options);
-					child.send(options);
-
-					processing = false;
+					sock.disconnect('tcp://' + address + ':' + port);
 				}
 				else if(commitWin == false)
 				{
 					monitoring.tick_t();
 					console.log('ID ' + file.commitment.smartObject.id + 
 						': ' + monitoring.getMachineState());
-
-					//Save the new status on the database
-					options = {
-						url: 'http://localhost:3000/commitments',
-						method: 'PUT',
-						headers: headers,
-						form: {'status': monitoring.getMachineState()}
-					}
-					child = fork.fork('./request.js', options);
-					child.send(options);
-
-					processing = false;
+					sock.disconnect('tcp://' + address + ':' + port);
 				}
 				else
 				{	
@@ -141,24 +163,12 @@ class Commit
 						monitoring.tick_c();
 						console.log('ID ' + file.commitment.smartObject.id + 
 							': ' + monitoring.getMachineState());
-						//No sense to update the status on the database
 					}
 					else if(in_A_Win(tCreation, minA, maxA) && ant_res.antecedent == true)
 					{
 						monitoring.tick_d();
 						console.log('ID ' + file.commitment.smartObject.id + 
 							': ' + monitoring.getMachineState());
-
-						//Save the new status on the database
-						options = {
-							url: 'http://localhost:3000/commitments',
-							method: 'PUT',
-							headers: headers,
-							form: {'status': monitoring.getMachineState()}
-						}
-						child = fork.fork('./request.js', options);
-						child.send(options);
-
 						var detachDate = new Date();
 						var tDetaching = absolute_time(detachDate.getHours(), detachDate.getMinutes(), detachDate.getSeconds());
 					}
@@ -172,36 +182,14 @@ class Commit
 					monitoring.tick_v();
 					console.log('ID ' + file.commitment.smartObject.id + 
 						': ' + monitoring.getMachineState());
-
-					//Save the new status on the database
-					options = {
-						url: 'http://localhost:3000/commitments',
-						method: 'PUT',
-						headers: headers,
-						form: {'status': monitoring.getMachineState()}
-					}
-					child = fork.fork('./request.js', options);
-					child.send(options);
-
-					processing = false
+					sock.disconnect('tcp://' + address + ':' + port);
 				}
 				else if(type == 'persistent' && after_C_Win(tCreation, maxC))
 				{
 					monitoring.tick_s();
-					console.log('\nID ' + file.commitment.smartObject.id + 
+					console.log('ID ' + file.commitment.smartObject.id + 
 						': ' + monitoring.getMachineState());
-
-					//Save the new status on the database
-					options = {
-						url: 'http://localhost:3000/commitments',
-						method: 'PUT',
-						headers: headers,
-						form: {'status': monitoring.getMachineState()}
-					}
-					child = fork.fork('./request.js', options);
-					child.send(options);
-
-					processing = false;
+					sock.disconnect('tcp://' + address + ':' + port);
 				}
 				else
 				{
@@ -212,36 +200,14 @@ class Commit
 						monitoring.tick_v();
 						console.log('ID ' + file.commitment.smartObject.id + 
 							': ' + monitoring.getMachineState());
-
-						//Save the new status on the database
-						options = {
-							url: 'http://localhost:3000/commitments',
-							method: 'PUT',
-							headers: headers,
-							form: {'status': monitoring.getMachineState()}
-						}
-						child = fork.fork('./request.js', options);
-						child.send(options);
-
-						processing = false;
+						sock.disconnect('tcp://' + address + ':' + port);
 					}
-					else if(type == 'goal' && con_res.consequent == true && in_C_Win(tCreation, minC, maxC)) //NON BASTA, IL TASTINO DEV'ESSERE PREMUTO
+					else if(type == 'goal' && con_res.consequent == true && in_C_Win(tCreation, minC, maxC)) 
 					{
 						monitoring.tick_s();
-						console.log('\nID ' + file.commitment.smartObject.id + 
+						console.log('ID ' + file.commitment.smartObject.id + 
 							': ' + monitoring.getMachineState());
-
-						//Save the new status on the database
-						options = {
-							url: 'http://localhost:3000/commitments',
-							method: 'PUT',
-							headers: headers,
-							form: {'status': monitoring.getMachineState()}
-						}
-						child = fork.fork('./request.js', options);
-						child.send(options);
-
-						processing = false;
+						sock.disconnect('tcp://' + address + ':' + port);
 					}
 					else if(before_C_Win(tCreation, minC) || (in_C_Win(tCreation, minC, maxC) && ((type == 'goal' && con_res.consequent == false) || 
 						(type == 'persistent' && con_res.consequent == true))))
@@ -249,7 +215,6 @@ class Commit
 						monitoring.tick_d();
 						console.log('ID ' + file.commitment.smartObject.id + 
 							': ' + monitoring.getMachineState());
-						//No sense to update the status on the database
 					}
 				}
 				//TODO: SE ARRIVA UN SEGNALE DI SUSPEND VA IN PENDING, DI RELEASE VA IN TERMINATED, DI CANCEL VA IN VIOLATED
@@ -260,21 +225,8 @@ class Commit
 				monitoring.reactivated();
 				console.log('ID ' + file.commitment.smartObject.id + 
 							': ' + monitoring.getMachineState());
-
-				//Save the new status on the database
-				options = {
-					url: 'http://localhost:3000/commitments',
-					method: 'PUT',
-					headers: headers,
-					form: {'status': monitoring.getMachineState()}
-				}
-				child = fork.fork('./request.js', options);
-				child.send(options);
 			}
-			sleep.sleep(3);
-		} //end while
-
-
+		}); //end sock
 
 	}
 }

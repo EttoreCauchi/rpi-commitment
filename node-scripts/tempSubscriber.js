@@ -7,7 +7,8 @@ var zmq = require('zeromq')
 var address = config.sensor.address.host;
 var port = config.sensor.address.port;
 var topics = [];
-
+var res=2;
+var res2;
 
 sock.connect('tcp://' + address + ':' + port);
 
@@ -32,12 +33,13 @@ sock.on('message', function (topic, message) {
 		});
 
 measures[topics.indexOf(config.sensor.topic.temperature)].subscribe({
-		next: (v) => console.log("tempObserver read "+ v)
+		next: (v) => {console.log("tempObserver read "+ v);console.log(res);}
 	});
 	
 measures[topics.indexOf(config.sensor.topic.simpleinclination)].subscribe({
-		next: (v) => console.log("tiltObserver read "+ v)
+		next: (v) => {console.log("tiltObserver read "+ v);res2=v;}
 	});	
+
 
 //sock.subscribe(topic);
 //sock.subscribe(config.sensor.topic.simpleinclination);
