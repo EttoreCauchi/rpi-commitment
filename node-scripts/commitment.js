@@ -2,6 +2,7 @@ var JSONMath = require('json-logic');
 var fs = require('fs');
 var Stately = require('stately.js');
 var sleep = require('sleep');
+var request = require('request');
 const fork = require('child_process');
 var config = require('../config/settings');
 var zmq = require('zeromq');
@@ -73,6 +74,7 @@ class Commit
 		var monitoring = fsm_status();
 
 		var creationDate = new Date();
+		var tCreation = absolute_time(creationDate.getHours(), creationDate.getMinutes(), creationDate.getSeconds());
 
 		var ant_logic = new JSONMath;
 		var con_logic = new JSONMath;
@@ -82,6 +84,21 @@ class Commit
 
 		console.log('\nID ' + file.commitment.smartObject.id + 
 				': ' + monitoring.getMachineState());
+				
+		//Save the status on the database
+		var headers = {
+			'Id': file.commitment.smartObject.id
+		}			
+
+		var options = {
+			url: 'http://localhost:3000/commitments',
+			method: 'POST',
+			headers: headers,
+			form: {'status': monitoring.getMachineState()}
+		}
+		var child = fork.fork('./request.js', options);
+		child.send(options);		
+		
 
 		if(file.commitment.antecedentCondition.variables != true)
 		{
@@ -113,10 +130,20 @@ class Commit
 
 		console.log('\nID ' + file.commitment.smartObject.id + 
 				': ' + monitoring.getMachineState());
+				
+		//Save the new status on the database
+		options = {
+			url: 'http://localhost:3000/commitments',
+			method: 'PUT',
+			headers: headers,
+			form: {'status': monitoring.getMachineState()}
+		}
+		child = fork.fork('./request.js', options);
+		child.send(options);
 
 		sock.on('message', function (topic, message)
 		{
-			//AGGIORNARE I VALORI CHE PROVENGONO DAI SENSORI TODO
+			//Update the values coming from the sensors
 			if(topic.toString('utf8') === config.sensor.topic.temperature)
 			{
 				temp = message.toString('utf8');
@@ -146,6 +173,17 @@ class Commit
 					monitoring.tick_e();
 					console.log('ID ' + file.commitment.smartObject.id + 
 						': ' + monitoring.getMachineState());
+					
+					//Save the new status on the database
+					options = {
+						url: 'http://localhost:3000/commitments',
+						method: 'PUT',
+						headers: headers,
+						form: {'status': monitoring.getMachineState()}
+					}
+					child = fork.fork('./request.js', options);
+					child.send(options);
+					
 					sock.disconnect('tcp://' + address + ':' + port);
 				}
 				else if(commitWin == false)
@@ -153,6 +191,17 @@ class Commit
 					monitoring.tick_t();
 					console.log('ID ' + file.commitment.smartObject.id + 
 						': ' + monitoring.getMachineState());
+						
+					//Save the new status on the database
+					options = {
+						url: 'http://localhost:3000/commitments',
+						method: 'PUT',
+						headers: headers,
+						form: {'status': monitoring.getMachineState()}
+					}
+					child = fork.fork('./request.js', options);
+					child.send(options);	
+						
 					sock.disconnect('tcp://' + address + ':' + port);
 				}
 				else
@@ -163,12 +212,24 @@ class Commit
 						monitoring.tick_c();
 						console.log('ID ' + file.commitment.smartObject.id + 
 							': ' + monitoring.getMachineState());
+						//No sense to update the status on the database
 					}
 					else if(in_A_Win(tCreation, minA, maxA) && ant_res.antecedent == true)
 					{
 						monitoring.tick_d();
 						console.log('ID ' + file.commitment.smartObject.id + 
 							': ' + monitoring.getMachineState());
+							
+						//Save the new status on the database
+						options = {
+							url: 'http://localhost:3000/commitments',
+							method: 'PUT',
+							headers: headers,
+							form: {'status': monitoring.getMachineState()}
+						}
+						child = fork.fork('./request.js', options);
+						child.send(options);	
+							
 						var detachDate = new Date();
 						var tDetaching = absolute_time(detachDate.getHours(), detachDate.getMinutes(), detachDate.getSeconds());
 					}
@@ -182,6 +243,18 @@ class Commit
 					monitoring.tick_v();
 					console.log('ID ' + file.commitment.smartObject.id + 
 						': ' + monitoring.getMachineState());
+						
+					//Save the new status on the database
+					options = {
+						url: 'http://localhost:3000/commitments',
+						method: 'PUT',
+						headers: headers,
+						form: {'status': monitoring.getMachineState()}
+					}
+					child = fork.fork('./request.js', options);
+					child.send(options);
+
+						
 					sock.disconnect('tcp://' + address + ':' + port);
 				}
 				else if(type == 'persistent' && after_C_Win(tCreation, maxC))
@@ -189,6 +262,17 @@ class Commit
 					monitoring.tick_s();
 					console.log('ID ' + file.commitment.smartObject.id + 
 						': ' + monitoring.getMachineState());
+						
+					//Save the new status on the database
+					options = {
+						url: 'http://localhost:3000/commitments',
+						method: 'PUT',
+						headers: headers,
+						form: {'status': monitoring.getMachineState()}
+					}
+					child = fork.fork('./request.js', options);
+					child.send(options);	
+						
 					sock.disconnect('tcp://' + address + ':' + port);
 				}
 				else
@@ -200,6 +284,17 @@ class Commit
 						monitoring.tick_v();
 						console.log('ID ' + file.commitment.smartObject.id + 
 							': ' + monitoring.getMachineState());
+							
+						//Save the new status on the database
+						options = {
+							url: 'http://localhost:3000/commitments',
+							method: 'PUT',
+							headers: headers,
+							form: {'status': monitoring.getMachineState()}
+						}
+						child = fork.fork('./request.js', options);
+						child.send(options);	
+							
 						sock.disconnect('tcp://' + address + ':' + port);
 					}
 					else if(type == 'goal' && con_res.consequent == true && in_C_Win(tCreation, minC, maxC)) 
@@ -207,6 +302,17 @@ class Commit
 						monitoring.tick_s();
 						console.log('ID ' + file.commitment.smartObject.id + 
 							': ' + monitoring.getMachineState());
+							
+						//Save the new status on the database
+						options = {
+							url: 'http://localhost:3000/commitments',
+							method: 'PUT',
+							headers: headers,
+							form: {'status': monitoring.getMachineState()}
+						}
+						child = fork.fork('./request.js', options);
+						child.send(options);	
+							
 						sock.disconnect('tcp://' + address + ':' + port);
 					}
 					else if(before_C_Win(tCreation, minC) || (in_C_Win(tCreation, minC, maxC) && ((type == 'goal' && con_res.consequent == false) || 
@@ -215,6 +321,7 @@ class Commit
 						monitoring.tick_d();
 						console.log('ID ' + file.commitment.smartObject.id + 
 							': ' + monitoring.getMachineState());
+						//No sense to update the status on the database
 					}
 				}
 				//TODO: SE ARRIVA UN SEGNALE DI SUSPEND VA IN PENDING, DI RELEASE VA IN TERMINATED, DI CANCEL VA IN VIOLATED
@@ -225,6 +332,17 @@ class Commit
 				monitoring.reactivated();
 				console.log('ID ' + file.commitment.smartObject.id + 
 							': ' + monitoring.getMachineState());
+							
+				//Save the new status on the database
+				options = {
+					url: 'http://localhost:3000/commitments',
+					method: 'PUT',
+					headers: headers,
+					form: {'status': monitoring.getMachineState()}
+				}
+				child = fork.fork('./request.js', options);
+				child.send(options);
+				
 			}
 		}); //end sock
 

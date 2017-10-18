@@ -6,7 +6,7 @@ class ServerWeb {
 		const MongoClient = require('mongodb').MongoClient;
 		const bodyParser = require('body-parser');
 		const app = express();
-		const db = require('./config/db');
+		const db = require('../config/db');
 
 		app.use(bodyParser.urlencoded({ extended: true }));
 
