@@ -30,14 +30,12 @@ class TempHumPublisher {
             //var tempData = "{" + tempTopic + ":" + temp + "}";
             //var humData = "{" + humTopic + ":" + hum + "}";
             //publish by topic
-            if(count > 3)
-            {
+            if(count % 2 == 0)
 				sock.send([tempTopic, temp]);
+			else
 				sock.send([humTopic, hum]);
-				//console.log('Temperature: ' + temp + 'C, ' + 'humidity: ' + hum + '%');
-				//time expressed by ms!!
-			}
-            setTimeout(read, 1500);
+			//time expressed by ms!!
+            setTimeout(read, 2000);
         };
         read();
     }

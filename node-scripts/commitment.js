@@ -14,10 +14,10 @@ var port = config.sensor.address.port;
 sock.connect('tcp://' + address + ':' + port);
 		
 //TODO
-var temp;
-var hum;
+var temp = null;
+var hum = null;
 var tilt = 'False';
-var ldr;
+var ldr = null;
 var commitWin = true; //it becomes false if the button is pressed
 var hours = 0.5;
 
@@ -48,6 +48,10 @@ class Commit
 						file.commitment.consequentCondition.variables[1].variables[0] == 'tilt')
 			{
 				sock.subscribe('tilt');
+				var head = {
+				'Sensor' : 'tilt'
+				}
+				saveInTheDatabase(head, 'sensors', 'POST', {'value' : tilt});
 			}
 		}
 		else if (file.commitment.antecedentCondition.operation == '==' || file.commitment.antecedentCondition.operation == '!=' ||
@@ -67,6 +71,10 @@ class Commit
 				file.commitment.consequentCondition.variables[0] == 'tilt')
 			{
 				sock.subscribe('tilt');
+				var head = {
+				'Sensor' : 'tilt'
+				}
+				saveInTheDatabase(head, 'sensors', 'POST', {'value' : tilt});
 			}
 		}
 		
@@ -89,16 +97,7 @@ class Commit
 		var headers = {
 			'Id': file.commitment.smartObject.id
 		}			
-
-		var options = {
-			url: 'http://localhost:3000/commitments',
-			method: 'POST',
-			headers: headers,
-			form: {'status': monitoring.getMachineState()}
-		}
-		var child = fork.fork('./request.js', options);
-		child.send(options);		
-		
+		saveInTheDatabase(headers, 'commitments', 'POST', {'status': monitoring.getMachineState()});
 
 		if(file.commitment.antecedentCondition.variables != true)
 		{
@@ -132,37 +131,40 @@ class Commit
 				': ' + monitoring.getMachineState());
 				
 		//Save the new status on the database
-		options = {
-			url: 'http://localhost:3000/commitments',
-			method: 'PUT',
-			headers: headers,
-			form: {'status': monitoring.getMachineState()}
-		}
-		child = fork.fork('./request.js', options);
-		child.send(options);
+		saveInTheDatabase(headers, 'commitments', 'PUT', {'status': monitoring.getMachineState()});
 
 		sock.on('message', function (topic, message)
 		{
+			var head = {
+				'Sensor' : topic.toString('utf8')
+			}
+			
 			//Update the values coming from the sensors
-			if(topic.toString('utf8') === config.sensor.topic.temperature)
+			if(topic.toString('utf8') === config.sensor.topic.temperature && message.toString('utf8') != temp)
 			{
 				temp = message.toString('utf8');
 				console.log('Temp : ' + temp);
+				saveInTheDatabase(head, 'sensors', 'POST', {'value' : temp});
 			}
-			else if (topic.toString('utf8') === config.sensor.topic.humidity)
+			else if (topic.toString('utf8') === config.sensor.topic.humidity && message.toString('utf8') != hum)
 			{
 				hum = message.toString('utf8');
 				console.log('Hum : ' + hum);
+				saveInTheDatabase(head, 'sensors', 'POST', {'value' : hum});
+
 			}
-			else if (topic.toString('utf8') === config.sensor.topic.simpleinclination)
+			else if (topic.toString('utf8') === config.sensor.topic.simpleinclination  && message.toString('utf8') != tilt)
 			{
 				tilt = message.toString('utf8');
 				console.log('Tilt : ' + tilt);
+				saveInTheDatabase(head, 'sensors', 'POST', {'value' : tilt});
+
 			}
-			else if (topic.toString('utf8') === config.sensor.topic.brightness)
+			else if (topic.toString('utf8') === config.sensor.topic.brightness && message.toString('utf8') != ldr)
 			{
 				ldr = message.toString('utf8');
 				console.log('Ldr : ' + ldr);
+				saveInTheDatabase(head, 'sensors', 'POST', {'value' : ldr});
 			}
 			
 			//Conditions evaluation
@@ -175,14 +177,7 @@ class Commit
 						': ' + monitoring.getMachineState());
 					
 					//Save the new status on the database
-					options = {
-						url: 'http://localhost:3000/commitments',
-						method: 'PUT',
-						headers: headers,
-						form: {'status': monitoring.getMachineState()}
-					}
-					child = fork.fork('./request.js', options);
-					child.send(options);
+					saveInTheDatabase(headers, 'commitments', 'PUT', {'status': monitoring.getMachineState()});
 					
 					sock.disconnect('tcp://' + address + ':' + port);
 				}
@@ -193,14 +188,7 @@ class Commit
 						': ' + monitoring.getMachineState());
 						
 					//Save the new status on the database
-					options = {
-						url: 'http://localhost:3000/commitments',
-						method: 'PUT',
-						headers: headers,
-						form: {'status': monitoring.getMachineState()}
-					}
-					child = fork.fork('./request.js', options);
-					child.send(options);	
+					saveInTheDatabase(headers, 'commitments', 'PUT', {'status': monitoring.getMachineState()});
 						
 					sock.disconnect('tcp://' + address + ':' + port);
 				}
@@ -221,14 +209,7 @@ class Commit
 							': ' + monitoring.getMachineState());
 							
 						//Save the new status on the database
-						options = {
-							url: 'http://localhost:3000/commitments',
-							method: 'PUT',
-							headers: headers,
-							form: {'status': monitoring.getMachineState()}
-						}
-						child = fork.fork('./request.js', options);
-						child.send(options);	
+						saveInTheDatabase(headers, 'commitments', 'PUT', {'status': monitoring.getMachineState()});	
 							
 						var detachDate = new Date();
 						var tDetaching = absolute_time(detachDate.getHours(), detachDate.getMinutes(), detachDate.getSeconds());
@@ -245,15 +226,7 @@ class Commit
 						': ' + monitoring.getMachineState());
 						
 					//Save the new status on the database
-					options = {
-						url: 'http://localhost:3000/commitments',
-						method: 'PUT',
-						headers: headers,
-						form: {'status': monitoring.getMachineState()}
-					}
-					child = fork.fork('./request.js', options);
-					child.send(options);
-
+					saveInTheDatabase(headers, 'commitments', 'PUT', {'status': monitoring.getMachineState()});
 						
 					sock.disconnect('tcp://' + address + ':' + port);
 				}
@@ -264,14 +237,7 @@ class Commit
 						': ' + monitoring.getMachineState());
 						
 					//Save the new status on the database
-					options = {
-						url: 'http://localhost:3000/commitments',
-						method: 'PUT',
-						headers: headers,
-						form: {'status': monitoring.getMachineState()}
-					}
-					child = fork.fork('./request.js', options);
-					child.send(options);	
+					saveInTheDatabase(headers, 'commitments', 'PUT', {'status': monitoring.getMachineState()});	
 						
 					sock.disconnect('tcp://' + address + ':' + port);
 				}
@@ -286,14 +252,7 @@ class Commit
 							': ' + monitoring.getMachineState());
 							
 						//Save the new status on the database
-						options = {
-							url: 'http://localhost:3000/commitments',
-							method: 'PUT',
-							headers: headers,
-							form: {'status': monitoring.getMachineState()}
-						}
-						child = fork.fork('./request.js', options);
-						child.send(options);	
+						saveInTheDatabase(headers, 'commitments', 'PUT', {'status': monitoring.getMachineState()});	
 							
 						sock.disconnect('tcp://' + address + ':' + port);
 					}
@@ -304,14 +263,7 @@ class Commit
 							': ' + monitoring.getMachineState());
 							
 						//Save the new status on the database
-						options = {
-							url: 'http://localhost:3000/commitments',
-							method: 'PUT',
-							headers: headers,
-							form: {'status': monitoring.getMachineState()}
-						}
-						child = fork.fork('./request.js', options);
-						child.send(options);	
+						saveInTheDatabase(headers, 'commitments', 'PUT', {'status': monitoring.getMachineState()});	
 							
 						sock.disconnect('tcp://' + address + ':' + port);
 					}
@@ -334,18 +286,10 @@ class Commit
 							': ' + monitoring.getMachineState());
 							
 				//Save the new status on the database
-				options = {
-					url: 'http://localhost:3000/commitments',
-					method: 'PUT',
-					headers: headers,
-					form: {'status': monitoring.getMachineState()}
-				}
-				child = fork.fork('./request.js', options);
-				child.send(options);
+				saveInTheDatabase(headers, 'commitments', 'PUT', {'status': monitoring.getMachineState()});
 				
 			}
 		}); //end sock
-
 	}
 }
 exports.Commit = Commit;
@@ -657,4 +601,16 @@ function after_C_Win(tCreation, maxC)
 		return (true);
 	else
 		return (false);
+}
+
+function saveInTheDatabase(headers, url, method, value)
+{
+	var options = {
+		url: 'http://localhost:3000/' + url,
+		method: method,
+		headers: headers,
+		form: value
+	}
+	var child = fork.fork('./request.js', options);
+	child.send(options);
 }

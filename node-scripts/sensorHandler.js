@@ -12,7 +12,7 @@ console.log('publishers socket bound to port ' + port);
 var TiltPublisher = require('./TiltPublisher');
 var TempHumPublisher = require('./TempHumPublisher');
 
-//var tempSensor = new TempPublisher();
+//var tempSensor = new TempPublisher(sock);
 var tiltSensor = new TiltPublisher(sock);
 var tempHumSensor = new TempHumPublisher(sock);
 

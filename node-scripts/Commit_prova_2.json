@@ -2,7 +2,7 @@
 "commitment":
 	{
 	"strenght":"hard",
-	"type":"persistent",
+	"type":"goal",
 	"debtor":
 		{
 		"choreographyTask":"task1",
@@ -25,7 +25,7 @@
 		"operation": "&&",
 		"variables": [
 		    {
-		        "operation": "==",
+		        "operation": ">",
 		        "variables": [
 		            "temp",
 		            0
@@ -35,7 +35,7 @@
 		        "operation": "<",
 		        "variables": [
 		            "hum",
-		            2
+		            100
 		        ]
 		    }
 		]
@@ -43,21 +43,21 @@
 	"consequentCondition":
 		{
 		"minC": 0,
-		"maxC": 0.2,
+		"maxC": 1,
 		"operation": "||",
 		"variables": [
 		    {
 		        "operation": "==",
 		        "variables": [
 		            "tilt",
-		            false
+		            "True"
 		        ]
 		    },
 		    {
 		        "operation": "<",
 		        "variables": [
 		            "temp",
-		            10
+		            0
 		        ]
 		    }
 		]

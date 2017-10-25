@@ -2,7 +2,7 @@
 "commitment":
 	{
 	"strenght":"hard",
-	"type":"persistent",
+	"type":"goal",
 	"debtor":
 		{
 		"choreographyTask":"task1",
@@ -21,7 +21,7 @@
 	"antecedentCondition":
 		{
 		"minA": 0,
-		"maxA": 1,
+		"maxA": 0.4,
 		"operation": "&&",
 		"variables": [
 		    {
@@ -43,7 +43,7 @@
 	"consequentCondition":
 		{
 		"minC": 0,
-		"maxC": 0.3,
+		"maxC": 0.5,
 		"operation": "||",
 		"variables": [
 		    {
@@ -54,10 +54,10 @@
 		        ]
 		    },
 		    {
-		        "operation": "<",
+		        "operation": "==",
 		        "variables": [
-		            "completed_in_hours",
-		            0.1
+		            "tilt",
+		            "True"
 		        ]
 		    }
 		]
