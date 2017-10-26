@@ -3,30 +3,19 @@ const fork = require('child_process');
 var chokidar = require('chokidar');
 var watcher = chokidar.watch('./Commitments', {ignoreInitial: false});
 
-var config = require('../config/settings');
-var zmq = require('zeromq');
-var sock = zmq.socket('pub');
-
-var host = config.sensor.address.host;
-var port = config.sensor.address.port;
-
-sock.bindSync('tcp://' + host + ':' + port);
-
-//var TempPublisher = require('./TempPublisher');
 var TiltPublisher = require('./TiltPublisher');
 var TempHumPublisher = require('./TempHumPublisher');
-
-//var tempSensor = new TempPublisher(sock);
-var tiltSensor = new TiltPublisher(sock);
-var tempHumSensor = new TempHumPublisher(sock);
 
 var tilt_line = [];
 var temp_hum_line = [];
 var ldr_line = []
 
 class Handler {
-	initializeHandler() {
-	
+	initializeHandler(sock) {
+		
+		var tiltSensor = new TiltPublisher(sock);
+		var tempHumSensor = new TempHumPublisher(sock);
+		
 		watcher.on('add', function(path)
 		{
 

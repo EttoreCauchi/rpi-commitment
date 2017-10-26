@@ -1,6 +1,6 @@
 class ServerWeb {
 
-	create() {
+	create(sock) {
 
 		const express = require('express');
 		const MongoClient = require('mongodb').MongoClient;
@@ -12,7 +12,7 @@ class ServerWeb {
 
 		MongoClient.connect(db.url, (err, database) => {
 			if (err) return console.log(err)	
-			require('./routes')(app, database); //SE MODIFICATO, DA SISTEMARE ANCHE IN INDEX E APP_ROUTES
+			require('./routes')(app, database, sock); //SE MODIFICATO, DA SISTEMARE ANCHE IN INDEX E APP_ROUTES
 			app.listen(3000);
 			console.log('API is running on port 3000');
 		});

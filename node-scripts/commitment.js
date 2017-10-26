@@ -78,15 +78,24 @@ class Commit
 			}
 		}
 		
+		sock.subscribe(file.commitment.smartObject.id);
+		
 		//Initialize states machine
 		var monitoring = fsm_status();
 
-		var creationDate = new Date();
-		var tCreation = absolute_time(creationDate.getHours(), creationDate.getMinutes(), creationDate.getSeconds());
-
+		var creationDate;
+		var tCreation;
+		var detachDate;
+		var tDetaching;
 		var ant_logic = new JSONMath;
 		var con_logic = new JSONMath;
 		var thereIsAntecedent = false;
+		var ant_res;
+		var con_res;
+		var maxA;
+		var minA;
+		var maxC;
+		var minC;
 
 		var type = file.commitment.type;
 
@@ -99,42 +108,102 @@ class Commit
 		}			
 		saveInTheDatabase(headers, 'commitments', 'POST', {'status': monitoring.getMachineState()});
 
-		if(file.commitment.antecedentCondition.variables != true)
-		{
-			thereIsAntecedent = true;
-			var ant_res = ant_logic.execute({
-			    "antecedent": file.commitment.antecedentCondition
-			});
-			var maxA = absolute_time(0, file.commitment.antecedentCondition.maxA, 0);
-			var minA = absolute_time(0, file.commitment.antecedentCondition.minA, 0);
-			monitoring.tick_c();
-			//DA COLLEGARE A REST (INIZIO COMMITMENT)
-			var tCreation = absolute_time(creationDate.getHours(), creationDate.getMinutes(), creationDate.getSeconds());
-		}
-		else
-		{
-			console.log('NO ANTECEDENT');
-			monitoring.tick_c();
-			monitoring.tick_d();
-			var detachDate = new Date();
-			var tDetaching = absolute_time(detachDate.getHours(), detachDate.getMinutes(), detachDate.getSeconds());
-			//DA COLLEGARE A REST (INIZIO COMMITMENT)
-			var tCreation = absolute_time(creationDate.getHours(), creationDate.getMinutes(), creationDate.getSeconds());
-		}
-		var con_res = con_logic.execute({
-		    "consequent": file.commitment.consequentCondition
-		});
-		var maxC = absolute_time(0, file.commitment.consequentCondition.maxC, 0);
-		var minC = absolute_time(0, file.commitment.consequentCondition.minC, 0);
-
-		console.log('\nID ' + file.commitment.smartObject.id + 
-				': ' + monitoring.getMachineState());
-				
-		//Save the new status on the database
-		saveInTheDatabase(headers, 'commitments', 'PUT', {'status': monitoring.getMachineState()});
-
+		
 		sock.on('message', function (topic, message)
 		{
+			if(topic.toString('utf8') === file.commitment.smartObject.id && message.toString('utf8') === 'start' && monitoring.getMachineState() == 'NULL')
+			{
+				if(file.commitment.antecedentCondition.variables != true)
+				{
+					thereIsAntecedent = true;
+					ant_res = ant_logic.execute({
+						"antecedent": file.commitment.antecedentCondition
+					});
+					maxA = absolute_time(0, file.commitment.antecedentCondition.maxA, 0);
+					minA = absolute_time(0, file.commitment.antecedentCondition.minA, 0);
+					monitoring.tick_c();
+					creationDate = new Date();
+					//COLLEGATO A REST (INIZIO COMMITMENT)
+					tCreation = absolute_time(creationDate.getHours(), creationDate.getMinutes(), creationDate.getSeconds());
+				}
+				else
+				{
+					console.log('NO ANTECEDENT');
+					monitoring.tick_c();
+					monitoring.tick_d();
+					creationDate = new Date();
+					//COLLEGATO A REST (INIZIO COMMITMENT)
+					tCreation = absolute_time(creationDate.getHours(), creationDate.getMinutes(), creationDate.getSeconds());
+					detachDate = new Date();
+					tDetaching = absolute_time(detachDate.getHours(), detachDate.getMinutes(), detachDate.getSeconds());
+				}
+				con_res = con_logic.execute({
+					"consequent": file.commitment.consequentCondition
+				});
+				maxC = absolute_time(0, file.commitment.consequentCondition.maxC, 0);
+				minC = absolute_time(0, file.commitment.consequentCondition.minC, 0);
+
+				console.log('\nID ' + file.commitment.smartObject.id + 
+						': ' + monitoring.getMachineState());
+						
+				//Save the new status on the database
+				saveInTheDatabase(headers, 'commitments', 'PUT', {'status': monitoring.getMachineState()});
+			}
+			else if(topic.toString('utf8') === file.commitment.smartObject.id && message.toString('utf8') === 'cancel')
+			{
+				if(monitoring.getMachineState() == 'CONDITIONAL')
+				{
+					monitoring.cancel();
+					console.log('ID ' + file.commitment.smartObject.id + 
+						': ' + monitoring.getMachineState());
+							
+					//Save the new status on the database
+					saveInTheDatabase(headers, 'commitments', 'PUT', {'status': monitoring.getMachineState()});		
+					sock.disconnect('tcp://' + address + ':' + port);
+				}
+				else if(monitoring.getMachineState() == 'DETACHED')
+				{
+					monitoring.cancel();
+					console.log('ID ' + file.commitment.smartObject.id + 
+						': ' + monitoring.getMachineState());
+							
+					//Save the new status on the database
+					saveInTheDatabase(headers, 'commitments', 'PUT', {'status': monitoring.getMachineState()});	
+					sock.disconnect('tcp://' + address + ':' + port);
+				}
+			}
+			else if(topic.toString('utf8') === file.commitment.smartObject.id && message.toString('utf8') === 'release' &&
+					(monitoring.getMachineState() == 'CONDITIONAL' || monitoring.getMachineState() == 'DETACHED'))
+			{
+				monitoring.release();
+				console.log('ID ' + file.commitment.smartObject.id + 
+					': ' + monitoring.getMachineState());
+							
+				//Save the new status on the database
+				saveInTheDatabase(headers, 'commitments', 'PUT', {'status': monitoring.getMachineState()});		
+				sock.disconnect('tcp://' + address + ':' + port);
+			}
+			else if(topic.toString('utf8') === file.commitment.smartObject.id && message.toString('utf8') === 'suspend' && monitoring.getMachineState() == 'DETACHED')
+			{
+				monitoring.suspend();
+				console.log('ID ' + file.commitment.smartObject.id + 
+					': ' + monitoring.getMachineState());
+							
+				//Save the new status on the database
+				saveInTheDatabase(headers, 'commitments', 'PUT', {'status': monitoring.getMachineState()});
+			}
+			else if(topic.toString('utf8') === file.commitment.smartObject.id && message.toString('utf8') === 'reactivate' && monitoring.getMachineState() == 'PENDING')
+			{
+				//SE ARRIVA UN SEGNALE DI REACTIVATE 
+				monitoring.reactivated();
+				console.log('ID ' + file.commitment.smartObject.id + 
+							': ' + monitoring.getMachineState());
+							
+				//Save the new status on the database
+				saveInTheDatabase(headers, 'commitments', 'PUT', {'status': monitoring.getMachineState()});
+			}
+
+
 			var head = {
 				'Sensor' : topic.toString('utf8')
 			}
@@ -211,8 +280,8 @@ class Commit
 						//Save the new status on the database
 						saveInTheDatabase(headers, 'commitments', 'PUT', {'status': monitoring.getMachineState()});	
 							
-						var detachDate = new Date();
-						var tDetaching = absolute_time(detachDate.getHours(), detachDate.getMinutes(), detachDate.getSeconds());
+						detachDate = new Date();
+						tDetaching = absolute_time(detachDate.getHours(), detachDate.getMinutes(), detachDate.getSeconds());
 					}
 				}
 				//TODO: SE ARRIVA UN SEGNALE DI RELEASE VA IN TERMINATED, DI CANCEL VA IN TERMINATED
@@ -278,17 +347,6 @@ class Commit
 				}
 				//TODO: SE ARRIVA UN SEGNALE DI SUSPEND VA IN PENDING, DI RELEASE VA IN TERMINATED, DI CANCEL VA IN VIOLATED
 			}
-			if(monitoring.getMachineState() == 'PENDING')
-			{
-				//SE ARRIVA UN SEGNALE DI REACTIVATE 
-				monitoring.reactivated();
-				console.log('ID ' + file.commitment.smartObject.id + 
-							': ' + monitoring.getMachineState());
-							
-				//Save the new status on the database
-				saveInTheDatabase(headers, 'commitments', 'PUT', {'status': monitoring.getMachineState()});
-				
-			}
 		}); //end sock
 	}
 }
@@ -314,7 +372,7 @@ function fsm_status()
 		'tick_d': /* => */ 'DETACHED',
 		'tick_s':  /* => */ 'SATISFIED',
 		'tick_v':   /* => */ 'VIOLATED',
-	 	'calcel':   /* => */ 'VIOLATED',
+	 	'cancel':   /* => */ 'VIOLATED',
 		'suspend':   /* => */ 'PENDING',
 		'release':   /* => */ 'TERMINATED'
 	    },

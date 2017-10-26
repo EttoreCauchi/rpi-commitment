@@ -21,8 +21,8 @@
 	"antecedentCondition":
 		{
 		"minA": 0,
-		"maxA": 0.4,
-		"operation": "&&",
+		"maxA": 10,
+		"operation": "||",
 		"variables": [
 		    {
 		        "operation": ">",
@@ -35,7 +35,7 @@
 		        "operation": "<",
 		        "variables": [
 		            "hum",
-		            2
+		            30
 		        ]
 		    }
 		]
@@ -43,7 +43,7 @@
 	"consequentCondition":
 		{
 		"minC": 0,
-		"maxC": 0.5,
+		"maxC": 10,
 		"operation": "||",
 		"variables": [
 		    {
