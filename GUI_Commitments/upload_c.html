@@ -30,10 +30,10 @@
 			<nav class="navbar navbar-inverse" role="navigation">
 				<div id="main-nav" class="collapse navbar-collapse">
 					<ul class="nav navbar-nav">
-						<li><a href="home">Home</a></li>
-						<li><a href="upload_commitment">Upload</a></li>
-						<li><a href="insert_detail">Check Commitment Status</a></li>
-						<li><a href="sensor_status">Check Sensors Status</a></li>
+						<li><a href="home"><font color="black">Home</font></a></li>
+						<li><a href="upload_commitment"><font color="black">Upload</font></a></li>
+						<li><a href="insert_detail"><font color="black">Check Commitment Status</font></a></li>
+						<li><a href="sensor_status"><font color="black">Check Sensors Status</font></a></li>
 					</ul>
 				</div>
 			</nav>
@@ -43,8 +43,8 @@
     <div class="parallax-content baner-content" id="home">
         <div class="container">
             <div class="text-content">
-		<h2> <em>UPLOAD  </em> <span>COMMITMENT   </span></h2>
-		<p><font size="5">Choose a Json file: </font></p>
+		<h2> <em>UPLOAD  </em> <span>COMMITMENT   </span></h2><br><br>
+		<p><font size="5">Choose a Json file: </font></p><br>
             </div>
 		<form method="post" action="http://localhost/upload.php" enctype="multipart/form-data" target="_blank">
 			<div class="row">
@@ -56,7 +56,7 @@
 			</div>
 			<br>
 			<fieldset>
-    				<input type="submit" value="Confirm" name="submit" class="btn">  
+    				<button type="submit" name="submit" class="btn btn-primary">Confirm</button>  
 			</fieldset>				
 		</form>
         </div>
