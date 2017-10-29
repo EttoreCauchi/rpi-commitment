@@ -79,6 +79,7 @@ class Commit
 		}
 		
 		sock.subscribe(file.commitment.smartObject.id);
+		sock.subscribe('Ping');
 		
 		//Initialize states machine
 		var monitoring = fsm_status();
@@ -104,10 +105,11 @@ class Commit
 				
 		//Save the status on the database
 		var headers = {
-			'Id': file.commitment.smartObject.id
+			'Id': file.commitment.smartObject.id,
+			'Strength': file.commitment.strenght,
+			'Type': file.commitment.type
 		}			
 		saveInTheDatabase(headers, 'commitments', 'POST', {'status': monitoring.getMachineState()});
-
 		
 		sock.on('message', function (topic, message)
 		{
@@ -242,7 +244,7 @@ class Commit
 				if(after_A_Win(tCreation, maxA))
 				{
 					monitoring.tick_e();
-					console.log('ID ' + file.commitment.smartObject.id + 
+					console.log('\nID ' + file.commitment.smartObject.id + 
 						': ' + monitoring.getMachineState());
 					
 					//Save the new status on the database
@@ -322,7 +324,7 @@ class Commit
 							
 						//Save the new status on the database
 						saveInTheDatabase(headers, 'commitments', 'PUT', {'status': monitoring.getMachineState()});	
-							
+
 						sock.disconnect('tcp://' + address + ':' + port);
 					}
 					else if(type == 'goal' && con_res.consequent == true && in_C_Win(tCreation, minC, maxC)) 
@@ -397,6 +399,33 @@ function commitmentEvaluation (file_condition)
 {
 	if (file_condition.operation == '&&')
 	{
+		var op = [];
+		var index = [];
+		var cond = [];
+		var result = []
+		
+		for (var i = 0; i < file_condition.variables.length; i++)
+		{
+			op.push(file_condition.variables[i].operation);
+			index.push(file_condition.variables[i].variables[0]);
+			cond.push(file_condition.variables[i].variables[1]);
+			result.push(con_evaluation(op[i], index[i], cond[i]));
+		}
+		
+		for (var i = 0; i < file_condition.variables.length-1; i++)
+			console.log('(' + index[i] + ' ' + op[i] + ' ' + cond[i] + ' --> ' + result[i] + ') && ');
+			
+		console.log('(' + index[file_condition.variables.length-1] + ' ' + op[file_condition.variables.length-1] + ' ' + 
+			cond[file_condition.variables.length-1] + ' --> ' + result[file_condition.variables.length-1] + ')\n');	
+			
+		for (var i = 0; i < file_condition.variables.length; i++)
+		{
+			if(result[i] == 0)
+				return (false);
+		}
+		return (true);
+	
+	/*
 		var op_1 = file_condition.variables[0].operation;
 		var op_2 = file_condition.variables[1].operation;
 		var index_1 = file_condition.variables[0].variables[0];
@@ -410,36 +439,51 @@ function commitmentEvaluation (file_condition)
 		if(result_1 == 1 && result_2 == 1)
 			return (true);
 		else 
-			return (false);
+			return (false);*/
 	}
 	else if (file_condition.operation == '||')
 	{
-		var op_1 = file_condition.variables[0].operation;
-		var op_2 = file_condition.variables[1].operation;
-		var index_1 = file_condition.variables[0].variables[0];
-		var index_2 = file_condition.variables[1].variables[0];
-		var cond_1 = file_condition.variables[0].variables[1];
-		var cond_2 = file_condition.variables[1].variables[1];
-		var result_1 = con_evaluation(op_1, index_1, cond_1);
-		var result_2 = con_evaluation(op_2, index_2, cond_2);
-		console.log('(' + index_1 + ' ' + op_1 + ' ' + cond_1 + ' --> ' + result_1 + ') || (' +
-			index_2 + ' ' + op_2 + ' ' + cond_2 + ' --> ' + result_2 + ')\n');
-		if(result_1 == 0 && result_2 == 0)
-			return (false);
-		else 
-			return (true);
+		var op = [];
+		var index = [];
+		var cond = [];
+		var result = []
+		
+		for (var i = 0; i < file_condition.variables.length; i++)
+		{
+			op.push(file_condition.variables[i].operation);
+			index.push(file_condition.variables[i].variables[0]);
+			cond.push(file_condition.variables[i].variables[1]);
+			result.push(con_evaluation(op[i], index[i], cond[i]));
+		}
+		
+		for (var i = 0; i < file_condition.variables.length-1; i++)
+			console.log('(' + index[i] + ' ' + op[i] + ' ' + cond[i] + ' --> ' + result[i] + ') || ');
+			
+		console.log('(' + index[file_condition.variables.length-1] + ' ' + op[file_condition.variables.length-1] + ' ' + 
+			cond[file_condition.variables.length-1] + ' --> ' + result[file_condition.variables.length-1] + ')\n');	
+			
+		for (var i = 0; i < file_condition.variables.length; i++)
+		{
+			if(result[i] == 1)
+				return (true);
+		}
+		return (false);
 	}
 	else
 	{
-		var op = file_condition.operation;
-		var index = file_condition.variables[0];
-		var cond = file_condition.variables[1];
-		var result = con_evaluation(op, index, cond);
-		console.log(index + ' ' + op + ' ' + cond + ' --> ' + result + '\n');
-		if(result == 0)
-			return (false);
-		else 
-			return (true);
+		if (file_condition.variables == true)
+			return true;
+		else {
+			var op = file_condition.operation;
+			var index = file_condition.variables[0];
+			var cond = file_condition.variables[1];
+			var result = con_evaluation(op, index, cond);
+			console.log(index + ' ' + op + ' ' + cond + ' --> ' + result + '\n');
+			if(result == 0)
+				return (false);
+			else 
+				return (true);
+		}
 	}
 
 }

@@ -1,7 +1,6 @@
 var fs = require('fs');
 var {Commit} = require('./commitment');
 
-
 process.on('message', function(file) {
 
 	var commit = new Commit();

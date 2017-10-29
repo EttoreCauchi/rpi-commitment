@@ -21,14 +21,14 @@
 	"antecedentCondition":
 		{
 		"minA": 0,
-		"maxA": 10,
-		"operation": "||",
+		"maxA": 1,
+		"operation": "&&",
 		"variables": [
 		    {
 		        "operation": ">",
 		        "variables": [
 		            "temp",
-		            10
+		            50
 		        ]
 		    },
 		    {
@@ -43,14 +43,15 @@
 	"consequentCondition":
 		{
 		"minC": 0,
-		"maxC": 10,
+		"maxC": 1,
+		"refC": "detach/creation",
 		"operation": "||",
 		"variables": [
 		    {
 		        "operation": "==",
 		        "variables": [
 		            "temp",
-		            0
+		            18
 		        ]
 		    },
 		    {
