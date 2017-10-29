@@ -12,6 +12,19 @@ http://www.templatemo.com/tm-506-tinker
     font-family: 'Roboto', arial, sans-serif;
 }
 
+div {}
+.twoColumns {
+	float: left;
+	width: 40%;
+	width: 45%;
+	width: 40%;
+	padding: 0 2%
+}
+
+.clearer {
+	float: none; clear:left
+}
+
 body {
 	overflow-x: hidden;
 }
@@ -209,7 +222,7 @@ bootstrap.min.css:5
 
 .baner-content {
 	width: 100%;
-  	padding-top: 25vh;
+  	padding-top: 7vh;
   	text-align: center;
   	background-image: /*url(../img/banner_bg.jpg)*/;
   	vertical-align: middle;
