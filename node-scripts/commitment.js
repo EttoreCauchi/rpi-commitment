@@ -79,7 +79,7 @@ class Commit
 		}
 		
 		sock.subscribe(file.commitment.smartObject.id);
-		sock.subscribe('Ping');
+		//sock.subscribe('Ping');
 		
 		//Initialize states machine
 		var monitoring = fsm_status();

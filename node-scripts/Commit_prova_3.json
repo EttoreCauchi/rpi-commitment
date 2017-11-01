@@ -1,0 +1,40 @@
+{
+"commitment":
+	{
+	"strenght":"hard",
+	"type":"goal",
+	"debtor":
+		{
+		"choreographyTask":"task1",
+		"debtorName":"debitore"
+		},
+	"creditor":
+		{
+		"choreographyTask":"task2",
+		"creditorName":"creditore"		
+		},
+	"smartObject":
+		{
+		"id":"0001",
+		"desc":"fkvnfkvfn"
+		},
+	"antecedentCondition":
+		{
+		"minA": 0,
+		"maxA": 0.5,
+		"variables": true
+    		},
+	"consequentCondition":
+		{
+		"minC": 0,
+		"maxC": 0.5,
+		"refC": "detach/creation",
+		"operation": "==",
+		"variables": [
+		     "tilt",
+		     "True"
+		 ]
+		}
+	}
+		
+}

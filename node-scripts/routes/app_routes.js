@@ -5,12 +5,14 @@ module.exports = function(app, db, sock) {
 	var details;
 	const express = require('express');
 	app.use(express.static('/home/pi/rpi-commitment/GUI_Commitments'));
+	app.use(express.static('/home/pi/rpi-commitment/GUI_Commitments/img/FSM'));
+	app.use(express.static('/home/pi/rpi-commitment/GUI_Commitments/img'));
 	var m_id = 1;
 	var call_commits = 0;
 	var call_sens = 0;
 	
 	app.post('/commitments', (req, res) => {
-		const note = {_id: req.headers.id, text: req.body.status};
+		const note = {_id: req.headers.id, text: req.body.status, strength: req.headers.strength, type: req.headers.type};
 		var userCollection = db.collection("commits");
 		if (call_commits == 0) {
 			userCollection.insert({});
@@ -31,7 +33,9 @@ module.exports = function(app, db, sock) {
 	});
 	
 	app.post('/sensors', (req, res) => {
-		const note = {_id: m_id, text: req.headers.sensor, value: req.body.value};
+		var time = new Date();
+		var datetext = time.getHours()+":"+time.getMinutes()+":"+time.getSeconds();
+		const note = {_id: m_id, time : datetext, text: req.headers.sensor, value: req.body.value};
 		var userCollection = db.collection("sens");
 		if(call_sens == 0) {
 			userCollection.insert({});
@@ -83,12 +87,35 @@ module.exports = function(app, db, sock) {
 				app.set('view engine', 'ejs');
 				var identifier = item._id;
 				var status = item.text;
+				var strength = capitalizeFirst(item.strength);
+				var type = capitalizeFirst(item.type);
 				var page = '/home/pi/rpi-commitment/GUI_Commitments/commi_status';
+				var photo;
+				if(item.text == 'NULL')
+					photo = "02.png";
+				else if(item.text == 'CONDITIONAL')
+					photo = '03.png';
+				else if(item.text == 'EXPIRED')
+					photo = '04.png';
+				else if(item.text == 'TERMINATED')
+					photo = '05.png';
+				else if(item.text == 'PENDING')
+					photo = '06.png';
+				else if(item.text == 'DETACHED')
+					photo = '07.png';
+				else if(item.text == 'VIOLATED')
+					photo = '08.png';
+				else if(item.text == 'SATISFIED')
+					photo = '09.png';
+				else (photo = '01.png');
 				res.render(page, {
 					identifier: identifier,
-					status: status
+					status: status,
+					strength: strength,
+					type: type,
+					photo: photo
 				});
-			}	
+			}
 		});
 	});
 
@@ -127,43 +154,56 @@ module.exports = function(app, db, sock) {
 	});
 	
 	app.get('/sensor_status', (req, res) => {
-		var temp, hum, tilt, ldr;
-		db.collection('sens').findOne({'text' : 'temp'}, {sort:{$natural:-1}}, (err, item) => {
-			if (item != null)
-				temp = item.value;
-			else
-				temp = 'ND';
-				
-		db.collection('sens').findOne({'text' : 'hum'}, {sort:{$natural:-1}}, (err, item) => {
-			if (item != null)
-				hum = item.value;
-			else
-				hum = 'ND';
+		var led;
+		var tilt;
+		var array_temp = [];
+		var array_hum = [];
+		var array_ldr = [];
 				
 		db.collection('sens').findOne({'text' : 'tilt'}, {sort:{$natural:-1}}, (err, item) => {
-			if (item != null)
-				tilt = item.value;
+			tilt = item.value;
+			if (tilt == 'True')
+				led = 'gRedR.gif';
 			else
-				tilt = 'ND';
-				
-		db.collection('sens').findOne({'text' : 'ldr'}, {sort:{$natural:-1}}, (err, item) => {
-			if (item != null)
-				ldr = item.value;
-			else
-				ldr = 'ND';
+				led = 'gRedG.gif';
 					
+		db.collection('sens').find({'text' : 'temp'}).toArray(function(err, result) {
+			if (err) throw err;
+			for (var x = 0; x < result.length; x++)
+			{
+				array_temp.push(result[x]);
+			}
+			
+		db.collection('sens').find({'text' : 'hum'}).toArray(function(err, result) {
+			if (err) throw err;
+			for (var x = 0; x < result.length; x++)
+			{
+				array_hum.push(result[x]);
+			}
+			
+		db.collection('sens').find({'text' : 'ldr'}).toArray(function(err, result) {
+			if (err) throw err;
+			for (var x = 0; x < result.length; x++)
+			{
+				array_ldr.push(result[x]);
+			}	
+		
 		app.set('view engine', 'ejs');
 		res.render('/home/pi/rpi-commitment/GUI_Commitments/sensor_status', {
-			temp : temp,
-			hum : hum,
-			tilt : tilt,
-			ldr : ldr
+			led : led,
+			array_ldr : array_ldr,
+			array_temp : array_temp,
+			array_hum : array_hum
 			});	
-					
 		});
-		});	
+		});
 		});		
 		});		
 	});
 	
+	function capitalizeFirst(string) {
+			return string.charAt(0).toUpperCase() + string.slice(1);
+	}
+	
+		
 };
