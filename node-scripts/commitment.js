@@ -42,6 +42,10 @@ class Commit
 				sock.subscribe('temp');
 				sock.subscribe('hum');
 			}
+			else 
+			{
+				sock.subscribe('Ping');
+			}
 			if (file.commitment.antecedentCondition.variables[0].variables[0] == 'tilt' ||
 				file.commitment.antecedentCondition.variables[1].variables[0] == 'tilt' ||
 					file.commitment.consequentCondition.variables[0].variables[0] == 'tilt' ||
@@ -67,6 +71,10 @@ class Commit
 				sock.subscribe('temp');
 				sock.subscribe('hum');				
 			}
+			else 
+			{
+				sock.subscribe('Ping');
+			}
 			if (file.commitment.antecedentCondition.variables[0] == 'tilt' ||
 				file.commitment.consequentCondition.variables[0] == 'tilt')
 			{
@@ -79,7 +87,6 @@ class Commit
 		}
 		
 		sock.subscribe(file.commitment.smartObject.id);
-		//sock.subscribe('Ping');
 		
 		//Initialize states machine
 		var monitoring = fsm_status();

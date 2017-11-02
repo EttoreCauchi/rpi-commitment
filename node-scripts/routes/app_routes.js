@@ -145,7 +145,18 @@ module.exports = function(app, db, sock) {
 	});
 	
 	app.get('/insert_detail', (req, res) => {
-		res.sendFile('/home/pi/rpi-commitment/GUI_Commitments/insert_detail.html');
+		var c_id = [];
+		db.collection('commits').find().toArray(function(err, result) {
+			if (err) throw err;
+			for (var x = 0; x < result.length; x++)
+			{
+				c_id.push(result[x]);
+			}
+		app.set('view engine', 'ejs');
+		res.render('/home/pi/rpi-commitment/GUI_Commitments/insert_detail', {
+				c_id : c_id
+		});
+		});
 	});
 	
 	app.post('/insert_detail', (req, res) => {
