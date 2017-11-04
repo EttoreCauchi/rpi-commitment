@@ -55,6 +55,7 @@ module.exports = function(app, db, sock) {
 	});
 	
 	app.post('/commitment_status', (req, res) => {
+		//TODO: TOGLIERE START UNA VOLTA SISTEMATO IL CODICE
 		if (req.body.button == 'start') {
 			sock.send([details._id, 'start']);
 		}
@@ -72,6 +73,20 @@ module.exports = function(app, db, sock) {
 		}
 		setTimeout((function() {res.redirect('/commitment_status')}), 1500);
 	});
+	
+	app.post('/start_commitment', (req, res) => {
+		{
+			sock.send([req.body.commitment, 'start']);
+		}
+	});
+	
+	app.post('/end_commitment', (req, res) => {
+		{
+			sock.send([details._id, 'end']);
+		}
+		setTimeout((function() {res.redirect('/commitment_status')}), 1500);
+	});
+	
 	
 	app.get('/commitments/:id', (req, res) => {
 		const id = req.params.id;
