@@ -1,0 +1,31 @@
+{
+"commitment":
+	{
+		"id":"C4c",
+		"pointOfView":"nomadic",
+		"strenght":"hard",
+		"type":"goal",
+		"debtor":"LocalEggsLogistic",
+		"creditor":"SweetDrams",
+		"debtorTargetActivity":"Change Carrier",
+		"creditorTargetActivity":"Delivery",
+		"antecedentCondition":
+		{
+			"minA": 0,
+			"maxA": "inf",
+			"operation": "<",
+			"variables": [
+				"intrust_time",
+				18
+			]
+		},
+		"consequentCondition":
+		{
+			"minC": 0,
+			"maxC": 720,
+			"refC": "detach",
+			"variables": true
+		}
+	}
+		
+}

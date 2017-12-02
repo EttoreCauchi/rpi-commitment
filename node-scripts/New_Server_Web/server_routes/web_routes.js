@@ -41,7 +41,7 @@ module.exports = function(app) {
 			//Stoppa C2c
 			postToRasp('end_commitment', 'POST', {'commitment':'C2c'});
 		}
-		setTimeout((function() {res.redirect('/home')}), 1500);
+		setTimeout((function() {res.redirect('/home')}), 1000);
 	});
 
 	app.get('/', (req, res) => {

@@ -1,0 +1,50 @@
+{
+"commitment":
+	{
+		"id":"C5c",
+		"pointOfView":"nomadic",
+		"strenght":"hard",
+		"type":"persistent",
+		"debtor":"LocalEggsLogistic",
+		"creditor":"SweetDreams",
+		"debtorTargetActivity":"ChangeCarrier",
+		"creditorTargetActivity":"Delivery",
+		"antecedentCondition":
+		{
+			"minA": 0,
+			"maxA": "inf",
+			"variables": true
+		},
+		"consequentCondition":
+		{
+			"minC": 0,
+			"maxC": "inf",
+			"refC": "creation",
+			"operation": "&&",
+			"variables": [
+			{
+				"operation": "<",
+				"variables": [
+					"temp",
+					25
+				]
+			},
+			{
+				"operation": "<",
+				"variables": [
+					"hum",
+					75
+				]
+			},
+			{
+				"operation": "==",
+				"variables": [
+					"tilt",
+					"False"
+				]
+			}
+			]
+		}
+	}
+		
+}

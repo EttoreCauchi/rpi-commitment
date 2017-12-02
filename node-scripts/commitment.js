@@ -13,13 +13,11 @@ var port = config.sensor.address.port;
 
 sock.connect('tcp://' + address + ':' + port);
 		
-//TODO
 var temp = null;
 var hum = null;
 var tilt = 'False';
 var ldr = null;
-var commitWin = true; //it becomes false if the button is pressed
-var hours = 0.5;
+var commitWin = true; //it becomes false if the activity ends
 
 class Commit
 {
@@ -30,14 +28,20 @@ class Commit
 		if (file.commitment.antecedentCondition.operation == '&&' || file.commitment.antecedentCondition.operation == '||' ||
 			file.commitment.consequentCondition.operation == '&&' || file.commitment.consequentCondition.operation == '||')
 		{
-			if (file.commitment.antecedentCondition.variables[0].variables[0] == 'temp' ||
-				file.commitment.antecedentCondition.variables[0].variables[0] == 'hum' ||
-					file.commitment.antecedentCondition.variables[1].variables[0] == 'temp' ||
-					file.commitment.antecedentCondition.variables[1].variables[0] == 'hum' ||
-						file.commitment.consequentCondition.variables[0].variables[0] == 'temp' ||
-						file.commitment.consequentCondition.variables[0].variables[0] == 'hum' ||
-							file.commitment.consequentCondition.variables[1].variables[0] == 'temp' ||
-							file.commitment.consequentCondition.variables[1].variables[0] == 'hum')
+			var find_TH = false;
+			for (var i = 0; i < file.commitment.antecedentCondition.variables.length && find_TH == false; i++)
+			{
+				if (file.commitment.antecedentCondition.variables[i].variables[0] == 'temp' ||
+					file.commitment.antecedentCondition.variables[i].variables[0] == 'hum')
+					find_TH = true;
+			}
+			for (var i = 0; i < file.commitment.consequentCondition.variables.length  && find_TH == false; i++)
+			{
+				if (file.commitment.consequentCondition.variables[i].variables[0] == 'temp' ||
+					file.commitment.consequentCondition.variables[i].variables[0] == 'hum')
+					find_TH = true;
+			}
+			if (find_TH == true)
 			{
 				sock.subscribe('temp');
 				sock.subscribe('hum');
@@ -46,10 +50,18 @@ class Commit
 			{
 				sock.subscribe('Ping');
 			}
-			if (file.commitment.antecedentCondition.variables[0].variables[0] == 'tilt' ||
-				file.commitment.antecedentCondition.variables[1].variables[0] == 'tilt' ||
-					file.commitment.consequentCondition.variables[0].variables[0] == 'tilt' ||
-						file.commitment.consequentCondition.variables[1].variables[0] == 'tilt')
+			var find_TT = false;
+			for (var i = 0; i < file.commitment.antecedentCondition.variables.length && find_TT == false; i++)
+			{
+				if (file.commitment.antecedentCondition.variables[i].variables[0] == 'tilt')
+					find_TT = true;
+			}
+			for (var i = 0; i < file.commitment.consequentCondition.variables.length  && find_TT == false; i++)
+			{
+				if (file.commitment.consequentCondition.variables[i].variables[0] == 'tilt')
+					find_TT = true;
+			}
+			if (find_TT == true)
 			{
 				sock.subscribe('tilt');
 				var head = {
@@ -86,7 +98,7 @@ class Commit
 			}
 		}
 		
-		sock.subscribe(file.commitment.smartObject.id);
+		sock.subscribe(file.commitment.id);
 		
 		//Initialize states machine
 		var monitoring = fsm_status();
@@ -95,6 +107,7 @@ class Commit
 		var tCreation;
 		var detachDate;
 		var tDetaching;
+		var tReference;
 		var ant_logic = new JSONMath;
 		var con_logic = new JSONMath;
 		var thereIsAntecedent = false;
@@ -107,20 +120,21 @@ class Commit
 
 		var type = file.commitment.type;
 
-		console.log('\nID ' + file.commitment.smartObject.id + 
+		console.log('\nID ' + file.commitment.id + 
 				': ' + monitoring.getMachineState());
 				
 		//Save the status on the database
 		var headers = {
-			'Id': file.commitment.smartObject.id,
+			'Id': file.commitment.id,
 			'Strength': file.commitment.strenght,
 			'Type': file.commitment.type
 		}			
 		saveInTheDatabase(headers, 'commitments', 'POST', {'status': monitoring.getMachineState()});
 		
+		//To be done when a message is received
 		sock.on('message', function (topic, message)
 		{
-			if(topic.toString('utf8') === file.commitment.smartObject.id && message.toString('utf8') === 'start' && monitoring.getMachineState() == 'NULL')
+			if(topic.toString('utf8') === file.commitment.id && message.toString('utf8') === 'start' && monitoring.getMachineState() == 'NULL')
 			{
 				if(file.commitment.antecedentCondition.variables != true)
 				{
@@ -132,7 +146,7 @@ class Commit
 					minA = absolute_time(0, file.commitment.antecedentCondition.minA, 0);
 					monitoring.tick_c();
 					creationDate = new Date();
-					//COLLEGATO A REST (INIZIO COMMITMENT)
+					//Connected to Rest (Commitment start)
 					tCreation = absolute_time(creationDate.getHours(), creationDate.getMinutes(), creationDate.getSeconds());
 				}
 				else
@@ -141,29 +155,46 @@ class Commit
 					monitoring.tick_c();
 					monitoring.tick_d();
 					creationDate = new Date();
-					//COLLEGATO A REST (INIZIO COMMITMENT)
+					//Connected to Rest (Commitment start)
 					tCreation = absolute_time(creationDate.getHours(), creationDate.getMinutes(), creationDate.getSeconds());
 					detachDate = new Date();
 					tDetaching = absolute_time(detachDate.getHours(), detachDate.getMinutes(), detachDate.getSeconds());
+					if(file.commitment.consequentCondition.refC == 'creation')
+						tReference = tCreation;
+					else
+						tReference = tDetaching;
 				}
-				con_res = con_logic.execute({
-					"consequent": file.commitment.consequentCondition
-				});
+				if(file.commitment.consequentCondition.variables != true)
+				{
+					con_res = con_logic.execute({
+						"consequent": file.commitment.consequentCondition
+					});
+				}
+				else
+				{
+					con_res = con_logic.execute({
+						"consequent": true
+					});
+				}
 				maxC = absolute_time(0, file.commitment.consequentCondition.maxC, 0);
 				minC = absolute_time(0, file.commitment.consequentCondition.minC, 0);
 
-				console.log('\nID ' + file.commitment.smartObject.id + 
+				console.log('\nID ' + file.commitment.id + 
 						': ' + monitoring.getMachineState());
 						
 				//Save the new status on the database
 				saveInTheDatabase(headers, 'commitments', 'PUT', {'status': monitoring.getMachineState()});
 			}
-			else if(topic.toString('utf8') === file.commitment.smartObject.id && message.toString('utf8') === 'cancel')
+			else if(topic.toString('utf8') === file.commitment.id && message.toString('utf8') === 'end')
+			{
+				commitWin = false;
+			}
+			else if(topic.toString('utf8') === file.commitment.id && message.toString('utf8') === 'cancel')
 			{
 				if(monitoring.getMachineState() == 'CONDITIONAL')
 				{
 					monitoring.cancel();
-					console.log('ID ' + file.commitment.smartObject.id + 
+					console.log('ID ' + file.commitment.id + 
 						': ' + monitoring.getMachineState());
 							
 					//Save the new status on the database
@@ -173,7 +204,7 @@ class Commit
 				else if(monitoring.getMachineState() == 'DETACHED')
 				{
 					monitoring.cancel();
-					console.log('ID ' + file.commitment.smartObject.id + 
+					console.log('ID ' + file.commitment.id + 
 						': ' + monitoring.getMachineState());
 							
 					//Save the new status on the database
@@ -181,31 +212,31 @@ class Commit
 					sock.disconnect('tcp://' + address + ':' + port);
 				}
 			}
-			else if(topic.toString('utf8') === file.commitment.smartObject.id && message.toString('utf8') === 'release' &&
+			else if(topic.toString('utf8') === file.commitment.id && message.toString('utf8') === 'release' &&
 					(monitoring.getMachineState() == 'CONDITIONAL' || monitoring.getMachineState() == 'DETACHED'))
 			{
 				monitoring.release();
-				console.log('ID ' + file.commitment.smartObject.id + 
+				console.log('ID ' + file.commitment.id + 
 					': ' + monitoring.getMachineState());
 							
 				//Save the new status on the database
 				saveInTheDatabase(headers, 'commitments', 'PUT', {'status': monitoring.getMachineState()});		
 				sock.disconnect('tcp://' + address + ':' + port);
 			}
-			else if(topic.toString('utf8') === file.commitment.smartObject.id && message.toString('utf8') === 'suspend' && monitoring.getMachineState() == 'DETACHED')
+			else if(topic.toString('utf8') === file.commitment.id && message.toString('utf8') === 'suspend' && monitoring.getMachineState() == 'DETACHED')
 			{
 				monitoring.suspend();
-				console.log('ID ' + file.commitment.smartObject.id + 
+				console.log('ID ' + file.commitment.id + 
 					': ' + monitoring.getMachineState());
 							
 				//Save the new status on the database
 				saveInTheDatabase(headers, 'commitments', 'PUT', {'status': monitoring.getMachineState()});
 			}
-			else if(topic.toString('utf8') === file.commitment.smartObject.id && message.toString('utf8') === 'reactivate' && monitoring.getMachineState() == 'PENDING')
+			else if(topic.toString('utf8') === file.commitment.id && message.toString('utf8') === 'reactivate' && monitoring.getMachineState() == 'PENDING')
 			{
-				//SE ARRIVA UN SEGNALE DI REACTIVATE 
+				//Reactivate signal 
 				monitoring.reactivated();
-				console.log('ID ' + file.commitment.smartObject.id + 
+				console.log('ID ' + file.commitment.id + 
 							': ' + monitoring.getMachineState());
 							
 				//Save the new status on the database
@@ -229,14 +260,12 @@ class Commit
 				hum = message.toString('utf8');
 				console.log('Hum : ' + hum);
 				saveInTheDatabase(head, 'sensors', 'POST', {'value' : hum});
-
 			}
 			else if (topic.toString('utf8') === config.sensor.topic.simpleinclination  && message.toString('utf8') != tilt)
 			{
 				tilt = message.toString('utf8');
 				console.log('Tilt : ' + tilt);
 				saveInTheDatabase(head, 'sensors', 'POST', {'value' : tilt});
-
 			}
 			else if (topic.toString('utf8') === config.sensor.topic.brightness && message.toString('utf8') != ldr)
 			{
@@ -251,7 +280,7 @@ class Commit
 				if(after_A_Win(tCreation, maxA))
 				{
 					monitoring.tick_e();
-					console.log('\nID ' + file.commitment.smartObject.id + 
+					console.log('\nID ' + file.commitment.id + 
 						': ' + monitoring.getMachineState());
 					
 					//Save the new status on the database
@@ -262,7 +291,7 @@ class Commit
 				else if(commitWin == false)
 				{
 					monitoring.tick_t();
-					console.log('ID ' + file.commitment.smartObject.id + 
+					console.log('\nID ' + file.commitment.id + 
 						': ' + monitoring.getMachineState());
 						
 					//Save the new status on the database
@@ -276,14 +305,14 @@ class Commit
 					if(before_A_Win(tCreation, minA) || (in_A_Win(tCreation, minA, maxA) && ant_res.antecedent == false))
 					{
 						monitoring.tick_c();
-						console.log('ID ' + file.commitment.smartObject.id + 
+						console.log('ID ' + file.commitment.id + 
 							': ' + monitoring.getMachineState());
 						//No sense to update the status on the database
 					}
 					else if(in_A_Win(tCreation, minA, maxA) && ant_res.antecedent == true)
 					{
 						monitoring.tick_d();
-						console.log('ID ' + file.commitment.smartObject.id + 
+						console.log('ID ' + file.commitment.id + 
 							': ' + monitoring.getMachineState());
 							
 						//Save the new status on the database
@@ -291,16 +320,19 @@ class Commit
 							
 						detachDate = new Date();
 						tDetaching = absolute_time(detachDate.getHours(), detachDate.getMinutes(), detachDate.getSeconds());
+						if(file.commitment.consequentCondition.refC == 'creation')
+							tReference = tCreation;
+						else
+							tReference = tDetaching;
 					}
 				}
-				//TODO: SE ARRIVA UN SEGNALE DI RELEASE VA IN TERMINATED, DI CANCEL VA IN TERMINATED
 			}
 			if(monitoring.getMachineState() == 'DETACHED')
 			{
 				if(commitWin == false)
 				{
 					monitoring.tick_v();
-					console.log('ID ' + file.commitment.smartObject.id + 
+					console.log('\nID ' + file.commitment.id + 
 						': ' + monitoring.getMachineState());
 						
 					//Save the new status on the database
@@ -308,10 +340,10 @@ class Commit
 						
 					sock.disconnect('tcp://' + address + ':' + port);
 				}
-				else if(type == 'persistent' && after_C_Win(tCreation, maxC))
+				else if(type == 'persistent' && after_C_Win(tReference, maxC))
 				{
 					monitoring.tick_s();
-					console.log('ID ' + file.commitment.smartObject.id + 
+					console.log('ID ' + file.commitment.id + 
 						': ' + monitoring.getMachineState());
 						
 					//Save the new status on the database
@@ -322,11 +354,11 @@ class Commit
 				else
 				{
 					con_res.consequent = commitmentEvaluation(file.commitment.consequentCondition);
-					if((type == 'persistent' && in_C_Win(tCreation, minC, maxC) && con_res.consequent == false) ||
-						(type == 'goal' && after_C_Win(tCreation, maxC)))
+					if((type == 'persistent' && in_C_Win(tReference, minC, maxC) && con_res.consequent == false) ||
+						(type == 'goal' && after_C_Win(tReference, maxC)))
 					{
 						monitoring.tick_v();
-						console.log('ID ' + file.commitment.smartObject.id + 
+						console.log('ID ' + file.commitment.id + 
 							': ' + monitoring.getMachineState());
 							
 						//Save the new status on the database
@@ -334,10 +366,10 @@ class Commit
 
 						sock.disconnect('tcp://' + address + ':' + port);
 					}
-					else if(type == 'goal' && con_res.consequent == true && in_C_Win(tCreation, minC, maxC)) 
+					else if(type == 'goal' && con_res.consequent == true && in_C_Win(tReference, minC, maxC)) 
 					{
 						monitoring.tick_s();
-						console.log('ID ' + file.commitment.smartObject.id + 
+						console.log('ID ' + file.commitment.id + 
 							': ' + monitoring.getMachineState());
 							
 						//Save the new status on the database
@@ -345,16 +377,15 @@ class Commit
 							
 						sock.disconnect('tcp://' + address + ':' + port);
 					}
-					else if(before_C_Win(tCreation, minC) || (in_C_Win(tCreation, minC, maxC) && ((type == 'goal' && con_res.consequent == false) || 
+					else if(before_C_Win(tReference, minC) || (in_C_Win(tReference, minC, maxC) && ((type == 'goal' && con_res.consequent == false) || 
 						(type == 'persistent' && con_res.consequent == true))))
 					{
 						monitoring.tick_d();
-						console.log('ID ' + file.commitment.smartObject.id + 
+						console.log('ID ' + file.commitment.id + 
 							': ' + monitoring.getMachineState());
 						//No sense to update the status on the database
 					}
 				}
-				//TODO: SE ARRIVA UN SEGNALE DI SUSPEND VA IN PENDING, DI RELEASE VA IN TERMINATED, DI CANCEL VA IN VIOLATED
 			}
 		}); //end sock
 	}
@@ -545,8 +576,10 @@ function index_eq_evaluation(index, cond)
 				result = 1;
 			return (result);
 			break;	
-		case 'completed_in_hours':
-			if (hours == cond)
+		case 'intrust_time':
+			var hours = new Date();
+			console.log('Time: ' + hours.getHours() + ':' + hours.getMinutes());
+			if (hours.getHours() == cond && hours.getMinutes() == '00')
 				result = 1;
 			return (result);
 			break;
@@ -579,8 +612,10 @@ function index_not_eq_evaluation(index, cond)
 				result = 1;
 			return (result);
 			break;	
-		case 'completed_in_hours':
-			if (hours != cond)
+		case 'intrust_time':
+			var hours = new Date();
+			console.log('Time: ' + hours.getHours() + ':' + hours.getMinutes());
+			if (hours.getHours() != cond && hours.getMinutes() == '00')
 				result = 1;
 			return (result);
 			break;
@@ -608,8 +643,10 @@ function index_lt_evaluation(index, cond)
 				result = 1;
 			return (result);
 			break;	
-		case 'completed_in_hours':
-			if (hours < cond)
+		case 'intrust_time':
+			var hours = new Date();
+			console.log('Time: ' + hours.getHours() + ':' + hours.getMinutes());
+			if (hours.getHours() < cond)
 				result = 1;
 			return (result);
 			break;
@@ -637,8 +674,10 @@ function index_gt_evaluation(index, cond)
 				result = 1;
 			return (result);
 			break;	
-		case 'completed_in_hours':
-			if (hours > cond)
+		case 'intrust_time':
+			var hours = new Date();
+			console.log('Time: ' + hours.getHours() + ':' + hours.getMinutes());
+			if (hours.getHours() > cond || (hours.getHours() == cond && hours.getMinutes() > '00'))
 				result = 1;
 			return (result);
 			break;
@@ -648,7 +687,11 @@ function index_gt_evaluation(index, cond)
 
 function absolute_time(h, m, s)
 {
-	var time = s + (m*60) + (h*3600);
+	var time;
+	if (m == 'inf')
+		time = 100000*100000;
+	else
+		time = s + (m*60) + (h*3600);
 	return (time);
 }
 
@@ -682,31 +725,31 @@ function after_A_Win(tCreation, maxA)
 		return (false);
 }
 
-function before_C_Win(tCreation, minC)
+function before_C_Win(tReference, minC)
 {
 	var date = new Date();
 	var currentTime = absolute_time(date.getHours(), date.getMinutes(), date.getSeconds())
-	if(currentTime <= (tCreation + minC))
+	if(currentTime <= (tReference + minC))
 		return (true);
 	else
 		return (false);
 }
 
-function in_C_Win(tCreation, minC, maxC)
+function in_C_Win(tReference, minC, maxC)
 {
 	var date = new Date();
 	var currentTime = absolute_time(date.getHours(), date.getMinutes(), date.getSeconds())
-	if((currentTime > (tCreation + minC)) && (currentTime <= (tCreation + maxC)))
+	if((currentTime > (tReference + minC)) && (currentTime <= (tReference + maxC)))
 		return (true);
 	else
 		return (false);
 }
 
-function after_C_Win(tCreation, maxC)
+function after_C_Win(tReference, maxC)
 {
 	var date = new Date();
 	var currentTime = absolute_time(date.getHours(), date.getMinutes(), date.getSeconds())
-	if(currentTime >= tCreation + maxC)
+	if(currentTime >= tReference + maxC)
 		return (true);
 	else
 		return (false);
